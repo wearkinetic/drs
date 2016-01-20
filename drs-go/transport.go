@@ -6,7 +6,6 @@ type Transport interface {
 	On(action string) error
 	Listen(ch ConnectionHandler) error
 	Connect(host string) (io.ReadWriteCloser, error)
-	Frame(rw io.ReadWriteCloser) ([]byte, error)
 }
 
 type Command struct {

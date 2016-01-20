@@ -32,16 +32,6 @@ func (this *Transport) Connect(host string) (io.ReadWriteCloser, error) {
 	return ws, nil
 }
 
-func (this *Transport) Frame(rw io.ReadWriteCloser) ([]byte, error) {
-	ws := rw.(*websocket.Conn)
-	var data []byte
-	err := websocket.Message.Receive(ws, &data)
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
-}
-
 func New() (*drs.DRS, error) {
 	transport := new(Transport)
 	return drs.New(transport)

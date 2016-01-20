@@ -58,15 +58,15 @@ func (this *DRS) Listen() error {
 func (this *DRS) connection(rw io.ReadWriteCloser) (chan bool, *Connection) {
 	conn := NewConnection(rw)
 	done := make(chan bool)
+	decoder := json.NewDecoder(rw)
 	go func() {
 		for {
-			data, err := this.transport.Frame(rw)
+			cmd := new(Command)
+			err := decoder.Decode(&cmd)
 			if err != nil && err.Error() == "EOF" {
 				log.Println(err)
 				break
 			}
-			cmd := new(Command)
-			json.Unmarshal(data, cmd)
 			this.Process(conn, cmd)
 		}
 		done <- true
