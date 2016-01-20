@@ -4,7 +4,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/ironbay/drs-go"
+	"github.com/ironbay/drs/drs-go"
 	"golang.org/x/net/websocket"
 )
 

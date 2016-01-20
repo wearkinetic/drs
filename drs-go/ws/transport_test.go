@@ -3,7 +3,7 @@ package ws
 import (
 	"testing"
 
-	"github.com/ironbay/drs-go"
+	"github.com/ironbay/drs/drs-go"
 )
 
 func TestTransport(t *testing.T) {
