@@ -1,7 +1,6 @@
 package drs
 
 import (
-	"encoding/json"
 	"io"
 	"log"
 
@@ -46,7 +45,7 @@ func (this *DRS) Send(cmd *Command) (interface{}, error) {
 	}
 	wait := make(chan *Command)
 	this.pending[cmd.Key] = wait
-	err = conn.Send(cmd)
+	err = conn.Encode(cmd)
 	response := <-wait
 	return response.Body, err
 }
@@ -58,11 +57,10 @@ func (this *DRS) Listen() error {
 func (this *DRS) connection(rw io.ReadWriteCloser) (chan bool, *Connection) {
 	conn := NewConnection(rw)
 	done := make(chan bool)
-	decoder := json.NewDecoder(rw)
 	go func() {
 		for {
 			cmd := new(Command)
-			err := decoder.Decode(&cmd)
+			err := conn.Decode(&cmd)
 			if err != nil && err.Error() == "EOF" {
 				log.Println(err)
 				break
@@ -93,7 +91,7 @@ func (this *DRS) Process(conn *Connection, cmd *Command) {
 		Action: "response",
 		Body:   result,
 	}
-	conn.Send(response)
+	conn.Encode(response)
 }
 
 func (this *DRS) route(action string) (*Connection, error) {

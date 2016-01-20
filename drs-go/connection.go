@@ -6,8 +6,12 @@ import (
 )
 
 type Connection struct {
-	cache map[string]interface{}
-	rw    io.ReadWriteCloser
+	Encoder
+	Decoder
+	cache   map[string]interface{}
+	rw      io.ReadWriteCloser
+	encoder Encoder
+	decoder Decoder
 }
 
 func (this *Connection) Set(key string, value interface{}) {
@@ -19,18 +23,11 @@ func (this *Connection) Get(key string) (interface{}, bool) {
 	return result, ok
 }
 
-func (this *Connection) Send(cmd *Command) error {
-	data, err := json.Marshal(cmd)
-	if err != nil {
-		return err
-	}
-	_, err = this.rw.Write(data)
-	return err
-}
-
 func NewConnection(rw io.ReadWriteCloser) *Connection {
 	return &Connection{
-		cache: map[string]interface{}{},
-		rw:    rw,
+		Encoder: json.NewEncoder(rw),
+		Decoder: json.NewDecoder(rw),
+		cache:   map[string]interface{}{},
+		rw:      rw,
 	}
 }
