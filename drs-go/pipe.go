@@ -5,7 +5,7 @@ import (
 	"github.com/ironbay/drs/drs-go/protocol"
 )
 
-type DRS struct {
+type Pipe struct {
 	transport   Transport
 	Router      RouterHandler
 	Protocol    protocol.Protocol
@@ -14,8 +14,8 @@ type DRS struct {
 	pending     map[string]chan *Command
 }
 
-func New(transport Transport) (*DRS, error) {
-	return &DRS{
+func New(transport Transport) (*Pipe, error) {
+	return &Pipe{
 		transport: transport,
 		Router: func(action string) (string, error) {
 			return "", nil
@@ -27,12 +27,12 @@ func New(transport Transport) (*DRS, error) {
 	}, nil
 }
 
-func (this *DRS) On(action string, handlers ...CommandHandler) error {
+func (this *Pipe) On(action string, handlers ...CommandHandler) error {
 	this.handlers[action] = handlers
 	return this.transport.On(action)
 }
 
-func (this *DRS) Send(cmd *Command) (interface{}, error) {
+func (this *Pipe) Send(cmd *Command) (interface{}, error) {
 	cmd.Key = uuid.Ascending()
 	conn, err := this.route(cmd.Action)
 	if err != nil {
@@ -42,14 +42,15 @@ func (this *DRS) Send(cmd *Command) (interface{}, error) {
 	this.pending[cmd.Key] = wait
 	err = conn.protocol.Encode(cmd)
 	response := <-wait
+	// TODO: Handle exceptions vs errors
 	return response.Body, err
 }
 
-func (this *DRS) Listen() error {
+func (this *Pipe) Listen() error {
 	return this.transport.Listen(this.register)
 }
 
-func (this *DRS) Process(conn *Connection, cmd *Command) {
+func (this *Pipe) Process(conn *Connection, cmd *Command) {
 	if cmd.Action == "response" || cmd.Action == "error" {
 		waiting, ok := this.pending[cmd.Key]
 		if ok {
@@ -72,7 +73,7 @@ func (this *DRS) Process(conn *Connection, cmd *Command) {
 	conn.protocol.Encode(response)
 }
 
-func (this *DRS) route(action string) (*Connection, error) {
+func (this *Pipe) route(action string) (*Connection, error) {
 	host, err := this.Router(action)
 	if err != nil {
 		return nil, err

@@ -22,7 +22,7 @@ func (this *Connection) Get(key string) (interface{}, bool) {
 	return result, ok
 }
 
-func (this *DRS) connect(host string) (*Connection, error) {
+func (this *Pipe) connect(host string) (*Connection, error) {
 	conn, ok := this.connections[host]
 	if ok {
 		return conn, nil
@@ -35,7 +35,7 @@ func (this *DRS) connect(host string) (*Connection, error) {
 	return conn, nil
 }
 
-func (this *DRS) register(host string, rw io.ReadWriteCloser) (*Connection, chan bool) {
+func (this *Pipe) register(host string, rw io.ReadWriteCloser) (*Connection, chan bool) {
 	conn := &Connection{
 		protocol: this.Protocol(rw),
 		cache:    map[string]interface{}{},

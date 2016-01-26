@@ -38,7 +38,7 @@ func (this *Transport) Connect(host string) (io.ReadWriteCloser, error) {
 	return ws, nil
 }
 
-func New() (*drs.DRS, error) {
+func New() (*drs.Pipe, error) {
 	transport := new(Transport)
 	return drs.New(transport)
 }

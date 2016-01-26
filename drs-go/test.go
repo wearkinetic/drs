@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func Test(t *testing.T, pipe *DRS) {
+func Test(t *testing.T, pipe *Pipe) {
 	pipe.Router = func(string) (string, error) {
 		return "localhost", nil
 	}
