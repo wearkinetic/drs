@@ -3,9 +3,12 @@ package drs
 import (
 	"log"
 	"testing"
+
+	"github.com/ironbay/drs/drs-go/protocol"
 )
 
 func Test(t *testing.T, pipe *Pipe) {
+	pipe.Protocol = protocol.GOB
 	pipe.Router = func(string) (string, error) {
 		return "localhost", nil
 	}
@@ -13,10 +16,7 @@ func Test(t *testing.T, pipe *Pipe) {
 		log.Println("Got Request", cmd.Body)
 		return cmd.Body, nil
 	})
-	err := pipe.Listen()
-	if err != nil {
-		t.Fatal(err)
-	}
+	go pipe.Listen()
 	result, err := pipe.Send(&Command{
 		Action: "echo",
 		Body:   "hello",

@@ -3,6 +3,7 @@ package protocol
 import (
 	"encoding/gob"
 	"encoding/json"
+	"encoding/xml"
 	"io"
 )
 
@@ -32,5 +33,12 @@ var GOB = func(rw io.ReadWriteCloser) *Stream {
 	return &Stream{
 		gob.NewEncoder(rw),
 		gob.NewDecoder(rw),
+	}
+}
+
+var XML = func(rw io.ReadWriteCloser) *Stream {
+	return &Stream{
+		xml.NewEncoder(rw),
+		xml.NewDecoder(rw),
 	}
 }

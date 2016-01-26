@@ -26,8 +26,7 @@ func (this *Transport) Listen(ch drs.ConnectionHandler) error {
 		_, done := ch(ip, ws)
 		<-done
 	}))
-	go http.ListenAndServe(":12000", nil)
-	return nil
+	return http.ListenAndServe(":12000", nil)
 }
 
 func (this *Transport) Connect(host string) (io.ReadWriteCloser, error) {

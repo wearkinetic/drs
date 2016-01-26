@@ -1,0 +1,48 @@
+package tcp
+
+import (
+	"fmt"
+	"io"
+	"net"
+
+	"github.com/ironbay/drs/drs-go"
+)
+
+type Transport struct {
+}
+
+func (this *Transport) On(action string) error {
+	return nil
+}
+
+func (this *Transport) Listen(ch drs.ConnectionHandler) error {
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%v", drs.PORT))
+	if err != nil {
+		return err
+	}
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			// handle error
+		}
+		go func() {
+			host := conn.RemoteAddr().String()
+			_, done := ch(host, conn)
+			<-done
+			conn.Close()
+		}()
+	}
+}
+
+func (this *Transport) Connect(host string) (io.ReadWriteCloser, error) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%v:%v", host, drs.PORT))
+	if err != nil {
+		return nil, err
+	}
+	return conn, nil
+}
+
+func New() (*drs.Pipe, error) {
+	transport := new(Transport)
+	return drs.New(transport)
+}

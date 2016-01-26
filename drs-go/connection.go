@@ -10,7 +10,7 @@ import (
 type Connection struct {
 	protocol *protocol.Stream
 	cache    map[string]interface{}
-	rw       io.ReadWriteCloser
+	Raw      io.ReadWriteCloser
 }
 
 func (this *Connection) Set(key string, value interface{}) {
@@ -39,7 +39,7 @@ func (this *Pipe) register(host string, rw io.ReadWriteCloser) (*Connection, cha
 	conn := &Connection{
 		protocol: this.Protocol(rw),
 		cache:    map[string]interface{}{},
-		rw:       rw,
+		Raw:      rw,
 	}
 	done := make(chan bool)
 	this.connections[host] = conn

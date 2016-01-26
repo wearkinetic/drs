@@ -5,6 +5,8 @@ import (
 	"github.com/ironbay/drs/drs-go/protocol"
 )
 
+const PORT = 12000
+
 type Pipe struct {
 	transport   Transport
 	Router      RouterHandler
