@@ -1,31 +1,26 @@
 package drs
 
 import (
-	"io"
-	"log"
-
 	"github.com/ironbay/delta/uuid"
+	"github.com/ironbay/drs/drs-go/protocol"
 )
 
 type DRS struct {
 	transport   Transport
 	Router      RouterHandler
+	Protocol    protocol.Protocol
 	handlers    map[string][]CommandHandler
 	connections map[string]*Connection
 	pending     map[string]chan *Command
 }
 
 func New(transport Transport) (*DRS, error) {
-	result := new(DRS)
-	result.transport = transport
-	result.Router = func(action string) (string, error) {
-		return "", nil
-	}
 	return &DRS{
 		transport: transport,
 		Router: func(action string) (string, error) {
 			return "", nil
 		},
+		Protocol:    protocol.JSON,
 		handlers:    make(map[string][]CommandHandler),
 		connections: make(map[string]*Connection),
 		pending:     map[string]chan *Command{},
@@ -45,31 +40,13 @@ func (this *DRS) Send(cmd *Command) (interface{}, error) {
 	}
 	wait := make(chan *Command)
 	this.pending[cmd.Key] = wait
-	err = conn.Encode(cmd)
+	err = conn.protocol.Encode(cmd)
 	response := <-wait
 	return response.Body, err
 }
 
 func (this *DRS) Listen() error {
-	return this.transport.Listen(this.connection)
-}
-
-func (this *DRS) connection(rw io.ReadWriteCloser) (chan bool, *Connection) {
-	conn := NewConnection(rw)
-	done := make(chan bool)
-	go func() {
-		for {
-			cmd := new(Command)
-			err := conn.Decode(&cmd)
-			if err != nil && err.Error() == "EOF" {
-				log.Println(err)
-				break
-			}
-			this.Process(conn, cmd)
-		}
-		done <- true
-	}()
-	return done, conn
+	return this.transport.Listen(this.register)
 }
 
 func (this *DRS) Process(conn *Connection, cmd *Command) {
@@ -77,6 +54,7 @@ func (this *DRS) Process(conn *Connection, cmd *Command) {
 		waiting, ok := this.pending[cmd.Key]
 		if ok {
 			waiting <- cmd
+			delete(this.pending, cmd.Key)
 			return
 		}
 	}
@@ -91,7 +69,7 @@ func (this *DRS) Process(conn *Connection, cmd *Command) {
 		Action: "response",
 		Body:   result,
 	}
-	conn.Encode(response)
+	conn.protocol.Encode(response)
 }
 
 func (this *DRS) route(action string) (*Connection, error) {
@@ -99,15 +77,5 @@ func (this *DRS) route(action string) (*Connection, error) {
 	if err != nil {
 		return nil, err
 	}
-	connection, ok := this.connections[action]
-	if ok {
-		return connection, nil
-	}
-	rw, err := this.transport.Connect(host)
-	if err != nil {
-		return nil, err
-	}
-	_, conn := this.connection(rw)
-	this.connections[action] = conn
-	return conn, nil
+	return this.connect(host)
 }

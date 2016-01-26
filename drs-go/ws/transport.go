@@ -17,7 +17,13 @@ func (this *Transport) On(action string) error {
 
 func (this *Transport) Listen(ch drs.ConnectionHandler) error {
 	http.Handle("/", websocket.Handler(func(ws *websocket.Conn) {
-		done, _ := ch(ws)
+		request := ws.Request()
+		ip := request.RemoteAddr
+		headers := request.Header["X-Forwarded-For"]
+		if len(headers) > 0 {
+			ip = headers[0]
+		}
+		_, done := ch(ip, ws)
 		<-done
 	}))
 	go http.ListenAndServe(":12000", nil)
