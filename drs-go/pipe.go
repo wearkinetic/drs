@@ -1,6 +1,8 @@
 package drs
 
 import (
+	"io"
+
 	"github.com/ironbay/delta/uuid"
 	"github.com/ironbay/drs/drs-go/protocol"
 )
@@ -49,7 +51,10 @@ func (this *Pipe) Send(cmd *Command) (interface{}, error) {
 }
 
 func (this *Pipe) Listen() error {
-	return this.transport.Listen(this.register)
+	return this.transport.Listen(func(rw io.ReadWriteCloser) {
+		conn := this.newConnection(rw)
+		this.handle(conn)
+	})
 }
 
 func (this *Pipe) Process(conn *Connection, cmd *Command) {

@@ -26,9 +26,7 @@ func (this *Transport) Listen(ch drs.ConnectionHandler) error {
 			// handle error
 		}
 		go func() {
-			host := conn.RemoteAddr().String()
-			_, done := ch(host, conn)
-			<-done
+			ch(conn)
 			conn.Close()
 		}()
 	}

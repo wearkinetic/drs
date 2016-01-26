@@ -31,31 +31,32 @@ func (this *Pipe) connect(host string) (*Connection, error) {
 	if err != nil {
 		return nil, err
 	}
-	conn, _ = this.register(host, rw)
+	conn = this.newConnection(rw)
+	this.connections[host] = conn
+	go func() {
+		this.handle(conn)
+		delete(this.connections, host)
+	}()
 	return conn, nil
 }
 
-func (this *Pipe) register(host string, rw io.ReadWriteCloser) (*Connection, chan bool) {
+func (this *Pipe) newConnection(rw io.ReadWriteCloser) *Connection {
 	conn := &Connection{
 		protocol: this.Protocol(rw),
 		cache:    map[string]interface{}{},
 		Raw:      rw,
 	}
-	done := make(chan bool)
-	this.connections[host] = conn
-	log.Println("Connected to", host)
-	go func() {
-		for {
-			cmd := new(Command)
-			err := conn.protocol.Decode(&cmd)
-			if err != nil && err.Error() == "EOF" {
-				log.Println(err)
-				break
-			}
-			this.Process(conn, cmd)
+	return conn
+}
+
+func (this *Pipe) handle(conn *Connection) {
+	for {
+		cmd := new(Command)
+		err := conn.protocol.Decode(&cmd)
+		if err != nil && err.Error() == "EOF" {
+			log.Println(err)
+			break
 		}
-		delete(this.connections, host)
-		done <- true
-	}()
-	return conn, done
+		this.Process(conn, cmd)
+	}
 }

@@ -16,7 +16,7 @@ type Command struct {
 
 type CommandHandler func(cmd *Command, conn *Connection) (interface{}, error)
 type RouterHandler func(action string) (string, error)
-type ConnectionHandler func(host string, rw io.ReadWriteCloser) (*Connection, chan bool)
+type ConnectionHandler func(rw io.ReadWriteCloser)
 type ByteWriter func(data []byte) error
 
 /*
