@@ -9,9 +9,9 @@ type Transport interface {
 }
 
 type Command struct {
-	Key    string
-	Action string
-	Body   interface{}
+	Key    string      `json:"key"`
+	Action string      `json:"action"`
+	Body   interface{} `json:"body"`
 }
 
 type CommandHandler func(cmd *Command, conn *Connection) (interface{}, error)

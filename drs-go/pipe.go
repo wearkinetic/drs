@@ -16,6 +16,11 @@ type Pipe struct {
 	handlers    map[string][]CommandHandler
 	connections map[string]*Connection
 	pending     map[string]chan *Command
+	Events      *Events
+}
+
+type Events struct {
+	Connect func(conn *Connection) error
 }
 
 func New(transport Transport) (*Pipe, error) {
@@ -28,6 +33,7 @@ func New(transport Transport) (*Pipe, error) {
 		handlers:    make(map[string][]CommandHandler),
 		connections: make(map[string]*Connection),
 		pending:     map[string]chan *Command{},
+		Events:      new(Events),
 	}, nil
 }
 
@@ -44,7 +50,7 @@ func (this *Pipe) Send(cmd *Command) (interface{}, error) {
 	}
 	wait := make(chan *Command)
 	this.pending[cmd.Key] = wait
-	err = conn.protocol.Encode(cmd)
+	err = conn.Encode(cmd)
 	response := <-wait
 	// TODO: Handle exceptions vs errors
 	return response.Body, err
@@ -52,7 +58,13 @@ func (this *Pipe) Send(cmd *Command) (interface{}, error) {
 
 func (this *Pipe) Listen() error {
 	return this.transport.Listen(func(rw io.ReadWriteCloser) {
-		conn := this.newConnection(rw)
+		conn := this.connect(rw)
+		if this.Events.Connect != nil {
+			err := this.Events.Connect(conn)
+			if err != nil {
+				return
+			}
+		}
 		this.handle(conn)
 	})
 }
@@ -72,12 +84,15 @@ func (this *Pipe) Process(conn *Connection, cmd *Command) {
 		return
 	}
 	result, _ := handlers[0](cmd, conn)
+	if result == nil {
+		return
+	}
 	response := &Command{
 		Key:    cmd.Key,
 		Action: "response",
 		Body:   result,
 	}
-	conn.protocol.Encode(response)
+	conn.Encode(response)
 }
 
 func (this *Pipe) route(action string) (*Connection, error) {
@@ -85,5 +100,5 @@ func (this *Pipe) route(action string) (*Connection, error) {
 	if err != nil {
 		return nil, err
 	}
-	return this.connect(host)
+	return this.dial(host)
 }

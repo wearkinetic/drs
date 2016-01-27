@@ -8,21 +8,20 @@ import (
 )
 
 type Connection struct {
-	protocol *protocol.Stream
-	cache    map[string]interface{}
-	Raw      io.ReadWriteCloser
+	*protocol.Stream
+	cache map[string]interface{}
+	Raw   io.ReadWriteCloser
 }
 
 func (this *Connection) Set(key string, value interface{}) {
 	this.cache[key] = value
 }
 
-func (this *Connection) Get(key string) (interface{}, bool) {
-	result, ok := this.cache[key]
-	return result, ok
+func (this *Connection) Get(key string) interface{} {
+	return this.cache[key]
 }
 
-func (this *Pipe) connect(host string) (*Connection, error) {
+func (this *Pipe) dial(host string) (*Connection, error) {
 	conn, ok := this.connections[host]
 	if ok {
 		return conn, nil
@@ -31,7 +30,7 @@ func (this *Pipe) connect(host string) (*Connection, error) {
 	if err != nil {
 		return nil, err
 	}
-	conn = this.newConnection(rw)
+	conn = this.connect(rw)
 	this.connections[host] = conn
 	go func() {
 		this.handle(conn)
@@ -40,11 +39,11 @@ func (this *Pipe) connect(host string) (*Connection, error) {
 	return conn, nil
 }
 
-func (this *Pipe) newConnection(rw io.ReadWriteCloser) *Connection {
+func (this *Pipe) connect(rw io.ReadWriteCloser) *Connection {
 	conn := &Connection{
-		protocol: this.Protocol(rw),
-		cache:    map[string]interface{}{},
-		Raw:      rw,
+		Stream: this.Protocol(rw),
+		cache:  map[string]interface{}{},
+		Raw:    rw,
 	}
 	return conn
 }
@@ -52,8 +51,11 @@ func (this *Pipe) newConnection(rw io.ReadWriteCloser) *Connection {
 func (this *Pipe) handle(conn *Connection) {
 	for {
 		cmd := new(Command)
-		err := conn.protocol.Decode(&cmd)
-		if err != nil && err.Error() == "EOF" {
+		err := conn.Decode(&cmd)
+		if err != nil {
+			if err.Error() == "EOF" {
+				break
+			}
 			log.Println(err)
 			break
 		}
