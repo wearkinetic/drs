@@ -23,9 +23,10 @@ type Stream struct {
 type Protocol func(rw io.ReadWriteCloser) *Stream
 
 var JSON = func(rw io.ReadWriteCloser) *Stream {
+	dc := json.NewDecoder(rw)
 	return &Stream{
 		json.NewEncoder(rw),
-		json.NewDecoder(rw),
+		dc,
 	}
 }
 
