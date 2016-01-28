@@ -12,9 +12,14 @@ type Command struct {
 	Key    string      `json:"key"`
 	Action string      `json:"action"`
 	Body   interface{} `json:"body"`
+	Meta   Dynamic     `json:"meta"`
 }
 
-type CommandHandler func(cmd *Command, conn *Connection) (interface{}, error)
+func (this *Command) Dynamic() Dynamic {
+	return Dynamic(this.Body.(map[string]interface{}))
+}
+
+type CommandHandler func(cmd *Command, conn *Connection, context Dynamic) (interface{}, error)
 type RouterHandler func(action string) (string, error)
 type ConnectionHandler func(rw io.ReadWriteCloser)
 type ByteWriter func(data []byte) error

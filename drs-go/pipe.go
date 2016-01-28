@@ -1,6 +1,7 @@
 package drs
 
 import (
+	"errors"
 	"io"
 
 	"github.com/ironbay/delta/uuid"
@@ -52,6 +53,9 @@ func (this *Pipe) Send(cmd *Command) (interface{}, error) {
 	this.pending[cmd.Key] = wait
 	err = conn.Encode(cmd)
 	response := <-wait
+	if response.Action == "error" {
+		return nil, errors.New(response.Body.(string))
+	}
 	// TODO: Handle exceptions vs errors
 	return response.Body, err
 }
@@ -83,14 +87,28 @@ func (this *Pipe) Process(conn *Connection, cmd *Command) {
 	if !ok {
 		return
 	}
-	result, _ := handlers[0](cmd, conn)
-	if result == nil {
-		return
+	ctx := make(Dynamic)
+	var result interface{}
+	var err error
+	for _, h := range handlers {
+		result, err = h(cmd, conn, ctx)
+		if err != nil {
+			break
+		}
 	}
-	response := &Command{
-		Key:    cmd.Key,
-		Action: "response",
-		Body:   result,
+	var response *Command
+	if err != nil {
+		response = &Command{
+			Key:    cmd.Key,
+			Action: "error",
+			Body:   err.Error(),
+		}
+	} else {
+		response = &Command{
+			Key:    cmd.Key,
+			Action: "response",
+			Body:   result,
+		}
 	}
 	conn.Encode(response)
 }

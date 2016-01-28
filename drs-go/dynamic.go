@@ -47,15 +47,16 @@ func (input Dynamic) Keys() []string {
 	return result
 }
 
-func (this Dynamic) Inflate() {
+func (this Dynamic) Inflate() Dynamic {
 	for key, value := range this {
 		splits := strings.Split(key, ".")
 		if casted, ok := value.(map[string]interface{}); ok {
-			Dynamic(casted).Inflate()
+			value = Dynamic(casted).Inflate()
 		}
 		delete(this, key)
 		this.Set(value, splits...)
 	}
+	return this
 }
 
 func (this Dynamic) To(out interface{}) error {
@@ -64,4 +65,9 @@ func (this Dynamic) To(out interface{}) error {
 		return err
 	}
 	return encoding.JSON.Unmarshal(bytes.NewBuffer(data), out)
+}
+
+func (this Dynamic) String(key ...string) string {
+	result, _ := this.Get(key...)
+	return result.(string)
 }
