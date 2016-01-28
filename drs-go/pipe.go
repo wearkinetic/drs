@@ -1,7 +1,6 @@
 package drs
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -64,7 +63,9 @@ func (this *Pipe) Send(cmd *Command) (interface{}, error) {
 		err = conn.Encode(cmd)
 		response := <-wait
 		if response.Action == ERROR {
-			return nil, errors.New(response.Body.(string))
+			return nil, &DRSError{
+				Message: response.Dynamic().String("message"),
+			}
 		}
 		if response.Action == EXCEPTION {
 			time.Sleep(time.Second)
@@ -123,11 +124,18 @@ func (this *Pipe) Process(conn *Connection, cmd *Command) {
 		}
 	}
 	if err != nil {
-		conn.Encode(&Command{
+		response := &Command{
 			Key:    cmd.Key,
-			Action: ERROR,
-			Body:   err.Error(),
-		})
+			Action: EXCEPTION,
+			Body: &DRSError{
+				Message: err.Error(),
+			},
+		}
+		if casted, ok := err.(*DRSError); ok {
+			response.Action = ERROR
+			response.Body = casted
+		}
+		conn.Encode(response)
 		return
 	}
 	conn.Encode(&Command{
