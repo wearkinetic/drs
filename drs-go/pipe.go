@@ -2,13 +2,21 @@ package drs
 
 import (
 	"errors"
+	"fmt"
 	"io"
+	"time"
 
 	"github.com/ironbay/delta/uuid"
 	"github.com/ironbay/drs/drs-go/protocol"
 )
 
 const PORT = 12000
+
+const (
+	ERROR     = "drs.error"
+	RESPONSE  = "drs.response"
+	EXCEPTION = "drs.exception"
+)
 
 type Pipe struct {
 	transport   Transport
@@ -45,19 +53,26 @@ func (this *Pipe) On(action string, handlers ...CommandHandler) error {
 
 func (this *Pipe) Send(cmd *Command) (interface{}, error) {
 	cmd.Key = uuid.Ascending()
-	conn, err := this.route(cmd.Action)
-	if err != nil {
-		return nil, err
+	for {
+		conn, err := this.route(cmd.Action)
+		if err != nil {
+			time.Sleep(time.Second)
+			continue
+		}
+		wait := make(chan *Command)
+		this.pending[cmd.Key] = wait
+		err = conn.Encode(cmd)
+		response := <-wait
+		if response.Action == ERROR {
+			return nil, errors.New(response.Body.(string))
+		}
+		if response.Action == EXCEPTION {
+			time.Sleep(time.Second)
+			continue
+		}
+		// TODO: Handle exceptions vs errors
+		return response.Body, err
 	}
-	wait := make(chan *Command)
-	this.pending[cmd.Key] = wait
-	err = conn.Encode(cmd)
-	response := <-wait
-	if response.Action == "error" {
-		return nil, errors.New(response.Body.(string))
-	}
-	// TODO: Handle exceptions vs errors
-	return response.Body, err
 }
 
 func (this *Pipe) Listen() error {
@@ -74,7 +89,18 @@ func (this *Pipe) Listen() error {
 }
 
 func (this *Pipe) Process(conn *Connection, cmd *Command) {
-	if cmd.Action == "response" || cmd.Action == "error" {
+	defer func() {
+		if r := recover(); r != nil {
+			response := &Command{
+				Key:    cmd.Key,
+				Action: EXCEPTION,
+				Body:   fmt.Sprint(r),
+			}
+			conn.Encode(response)
+		}
+	}()
+
+	if cmd.Action == RESPONSE || cmd.Action == ERROR || cmd.Action == EXCEPTION {
 		waiting, ok := this.pending[cmd.Key]
 		if ok {
 			waiting <- cmd
@@ -96,21 +122,19 @@ func (this *Pipe) Process(conn *Connection, cmd *Command) {
 			break
 		}
 	}
-	var response *Command
 	if err != nil {
-		response = &Command{
+		conn.Encode(&Command{
 			Key:    cmd.Key,
-			Action: "error",
+			Action: ERROR,
 			Body:   err.Error(),
-		}
-	} else {
-		response = &Command{
-			Key:    cmd.Key,
-			Action: "response",
-			Body:   result,
-		}
+		})
+		return
 	}
-	conn.Encode(response)
+	conn.Encode(&Command{
+		Key:    cmd.Key,
+		Action: RESPONSE,
+		Body:   result,
+	})
 }
 
 func (this *Pipe) route(action string) (*Connection, error) {
