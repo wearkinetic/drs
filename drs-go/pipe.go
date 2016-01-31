@@ -80,11 +80,11 @@ func (this *Pipe) Send(cmd *Command) (interface{}, error) {
 }
 
 func (this *Pipe) Listen() error {
-	this.On("ping", func(cmd *Command, conn *Connection, ctx Dynamic) (interface{}, error) {
+	this.On("drs.ping", func(cmd *Command, conn *Connection, ctx Dynamic) (interface{}, error) {
 		conn.Encode(&Command{
 			Action: "ping",
 		})
-		return "pong", nil
+		return time.Now().Unix(), nil
 	})
 	return this.transport.Listen(func(rw io.ReadWriteCloser) {
 		conn := this.connect(rw)
