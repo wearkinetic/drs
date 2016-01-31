@@ -13,8 +13,8 @@ export default class Connection {
 		return this._cache[key]
 	}
 
-	encode(cmd) {
-		const data = this._protocol.encode(cmd)
+	async send(cmd) {
+		const data = await this._protocol.encode(cmd)
 		this.raw.send(data)
 	}
 }

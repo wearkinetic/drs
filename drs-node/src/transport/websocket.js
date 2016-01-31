@@ -9,12 +9,21 @@ export default class Websocket extends Pipe {
 	}
 
 	_connect(host) {
-		const ws = new WS(`ws://${host}:12000/socket?` + qs.stringify(this._query))
-		return new Promise(resolve => {
+		return new Promise((resolve, reject) => {
+			const ws = new WS(`ws://${host}:12000/socket?` + qs.stringify(this._query))
+			ws.once('error', () => {
+				reject()
+			})
 			ws.on('open', () => {
 				resolve({
 					send(data) {
-						ws.send(data)
+						return new Promise((resolve, reject) => {
+							ws.send(data, error => {
+								if(error)
+									reject(error)
+								resolve()
+							})
+						})
 					},
 					on(action, cb) {
 						if (action === 'data')

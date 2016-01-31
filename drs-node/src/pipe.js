@@ -9,6 +9,12 @@ const ACTIONS = {
 	exception: 'drs.exception',
 }
 
+function timeout(time) {
+	return new Promise(resolve => {
+		setTimeout(resolve, time)
+	})
+}
+
 export default class Pipe {
 	constructor(transport) {
 		this.protocol = JSON
@@ -31,24 +37,27 @@ export default class Pipe {
 		if (!cmd.key)
 			cmd.key = UUID.ascending()
 		while (true) {
-			let conn
+			let response
 			try {
-				conn = await this._route(cmd.action)
+				const conn = await this._route(cmd.action)
+				const prom = new Promise((resolve, reject) => {
+					this._pending[cmd.key] = {
+						resolve,
+						reject,
+					}
+				})
+				conn.send(cmd)
+				response = await prom
 			} catch(ex) {
+				await timeout(1000)
 				continue
 			}
-			const prom = new Promise((resolve, reject) => {
-				this._pending[cmd.key] = {
-					resolve,
-					reject,
-				}
-			})
-			conn.encode(cmd)
-			const response = await prom
 			if (response.action === ACTIONS.error)
 				throw response.body
-			if (response.action === ACTIONS.exception)
+			if (response.action === ACTIONS.exception) {
+				await timeout(1000)
 				continue
+			}
 			return response.body
 		}
 	}
@@ -84,7 +93,10 @@ export default class Pipe {
 	async _process(conn, cmd) {
 		if (cmd.action === ACTIONS.response || cmd.action === ACTIONS.error || cmd.action === ACTIONS.exception) {
 			const match = this._pending[cmd.key]
+			if (!match)
+				return
 			match.resolve(cmd)
+			delete(this._pending[cmd.key])
 		}
 
 		const handlers = this._handlers[cmd.action]
@@ -106,10 +118,10 @@ export default class Pipe {
 				response.Action = ACTIONS.error
 				response.Body = ex
 			}
-			conn.encode(response)
+			conn.send(response)
 			return
 		}
-		conn.encode({
+		conn.send({
 			key: cmd.key,
 			action: ACTIONS.response,
 			body: result,
