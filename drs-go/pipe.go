@@ -3,6 +3,7 @@ package drs
 import (
 	"fmt"
 	"io"
+	"log"
 	"time"
 
 	"github.com/ironbay/delta/uuid"
@@ -51,7 +52,9 @@ func (this *Pipe) On(action string, handlers ...CommandHandler) error {
 }
 
 func (this *Pipe) Send(cmd *Command) (interface{}, error) {
-	cmd.Key = uuid.Ascending()
+	if cmd.Key == "" {
+		cmd.Key = uuid.Ascending()
+	}
 	for {
 		conn, err := this.route(cmd.Action)
 		if err != nil {
@@ -77,6 +80,12 @@ func (this *Pipe) Send(cmd *Command) (interface{}, error) {
 }
 
 func (this *Pipe) Listen() error {
+	this.On("ping", func(cmd *Command, conn *Connection, ctx Dynamic) (interface{}, error) {
+		conn.Encode(&Command{
+			Action: "ping",
+		})
+		return "pong", nil
+	})
 	return this.transport.Listen(func(rw io.ReadWriteCloser) {
 		conn := this.connect(rw)
 		if this.Events.Connect != nil {
@@ -89,7 +98,7 @@ func (this *Pipe) Listen() error {
 	})
 }
 
-func (this *Pipe) Process(conn *Connection, cmd *Command) {
+func (this *Pipe) process(conn *Connection, cmd *Command) {
 	defer func() {
 		if r := recover(); r != nil {
 			response := &Command{
@@ -97,6 +106,7 @@ func (this *Pipe) Process(conn *Connection, cmd *Command) {
 				Action: EXCEPTION,
 				Body:   fmt.Sprint(r),
 			}
+			log.Println(r)
 			conn.Encode(response)
 		}
 	}()

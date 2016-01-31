@@ -59,6 +59,6 @@ func (this *Pipe) handle(conn *Connection) {
 			log.Println(err)
 			break
 		}
-		this.Process(conn, cmd)
+		this.process(conn, cmd)
 	}
 }

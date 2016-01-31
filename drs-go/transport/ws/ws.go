@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 
@@ -9,6 +10,7 @@ import (
 )
 
 type Transport struct {
+	query drs.Dynamic
 }
 
 func (this *Transport) On(action string) error {
@@ -28,14 +30,19 @@ func (this *Transport) Listen(ch drs.ConnectionHandler) error {
 }
 
 func (this *Transport) Connect(host string) (io.ReadWriteCloser, error) {
-	ws, err := websocket.Dial("ws://"+host+":12000/socket", "", "http://"+host)
+	query := ""
+	for key, value := range this.query {
+		query += fmt.Sprintf("%v=%v&", key, value)
+	}
+	ws, err := websocket.Dial("ws://"+host+":12000/socket?"+query, "", "http://"+host)
 	if err != nil {
 		return nil, err
 	}
 	return ws, nil
 }
 
-func New() (*drs.Pipe, error) {
+func New(query map[string]interface{}) (*drs.Pipe, error) {
 	transport := new(Transport)
+	transport.query = drs.Dynamic(query)
 	return drs.New(transport)
 }
