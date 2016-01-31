@@ -16,9 +16,9 @@ function timeout(time) {
 }
 
 export default class Pipe {
-	constructor(transport) {
+	constructor() {
 		this.protocol = JSON
-		this.router = action => {
+		this.router = () => {
 			return 'localhost'
 		}
 
@@ -48,7 +48,7 @@ export default class Pipe {
 				})
 				conn.send(cmd)
 				response = await prom
-			} catch(ex) {
+			} catch (ex) {
 				await timeout(1000)
 				continue
 			}
@@ -74,7 +74,7 @@ export default class Pipe {
 		const rw = await this._connect(host)
 		conn = new Connection(rw, this.protocol)
 		this._connections[host] = conn
-		conn.raw.on('close', () => delete(this._connections[host]))
+		conn.raw.on('close', () => delete this._connections[host])
 		this._handle(conn)
 		return conn
 	}
@@ -84,7 +84,7 @@ export default class Pipe {
 			try {
 				const cmd = this.protocol.decode(data)
 				await this._process(conn, cmd)
-			} catch(ex) {
+			} catch (ex) {
 				console.log(ex)
 			}
 		}.bind(this))
@@ -96,17 +96,17 @@ export default class Pipe {
 			if (!match)
 				return
 			match.resolve(cmd)
-			delete(this._pending[cmd.key])
+			delete this._pending[cmd.key]
 		}
 
 		const handlers = this._handlers[cmd.action]
 		const ctx = {}
-		let result = undefined
+		let result
 		try {
 			for (let h of handlers) {
 				result = await h(cmd, conn, ctx)
 			}
-		} catch(ex) {
+		} catch (ex) {
 			const response = {
 				key: cmd.key,
 				action: ACTIONS.exception,
