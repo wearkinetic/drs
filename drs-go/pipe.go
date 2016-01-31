@@ -36,7 +36,7 @@ func New(transport Transport) (*Pipe, error) {
 	return &Pipe{
 		transport: transport,
 		Router: func(action string) (string, error) {
-			return "", nil
+			return ":12000", nil
 		},
 		Protocol:    protocol.JSON,
 		handlers:    make(map[string][]CommandHandler),

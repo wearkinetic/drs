@@ -10,7 +10,7 @@ export default class Websocket extends Pipe {
 
 	_connect(host) {
 		return new Promise((resolve, reject) => {
-			const ws = new WS(`ws://${host}:12000/socket?` + qs.stringify(this._query))
+			const ws = new WS(`ws://${host}/socket?` + qs.stringify(this._query))
 			ws.once('error', reject)
 			ws.on('open', () => resolve(session(ws)))
 		})

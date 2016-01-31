@@ -34,7 +34,7 @@ func (this *Transport) Connect(host string) (io.ReadWriteCloser, error) {
 	for key, value := range this.query {
 		query += fmt.Sprintf("%v=%v&", key, value)
 	}
-	ws, err := websocket.Dial("ws://"+host+":12000/socket?"+query, "", "http://"+host)
+	ws, err := websocket.Dial("ws://"+host+"/socket?"+query, "", "http://"+host)
 	if err != nil {
 		return nil, err
 	}

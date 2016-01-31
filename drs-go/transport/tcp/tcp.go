@@ -33,7 +33,7 @@ func (this *Transport) Listen(ch drs.ConnectionHandler) error {
 }
 
 func (this *Transport) Connect(host string) (io.ReadWriteCloser, error) {
-	conn, err := net.Dial("tcp", fmt.Sprintf("%v:%v", host, drs.PORT))
+	conn, err := net.Dial("tcp", host)
 	if err != nil {
 		return nil, err
 	}
