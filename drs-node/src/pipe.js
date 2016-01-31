@@ -46,9 +46,10 @@ export default class Pipe {
 						reject,
 					}
 				})
-				conn.send(cmd)
+				await conn.send(cmd)
 				response = await prom
 			} catch (ex) {
+				console.log(ex)
 				await timeout(1000)
 				continue
 			}
