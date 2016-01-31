@@ -131,7 +131,7 @@ export default class Pipe {
 
 	close() {
 		return Object.keys(this._connections).map(key => {
-			this._connections[key].close()
+			this._connections[key].raw.close()
 		})
 	}
 
