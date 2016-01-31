@@ -33,6 +33,9 @@ function session(ws) {
 				ws.on('message', data => cb(data))
 			if (action === 'close')
 				ws.on('close', () => cb())
+		},
+		close() {
+			ws.close()
 		}
 	}
 }
