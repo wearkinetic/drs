@@ -1,15 +1,15 @@
 {
   "name": "drs-node",
-  "version": "0.1.1",
+  "version": "0.1.4",
   "description": "Client for Delta",
   "main": "lib/index.js",
   "scripts": {
     "build": "babel src -d lib",
     "test": "babel-node src/test",
     "clean": "rm -rf lib",
-    "prepublish": "npm run clean && npm run build && npm version patch",
+    "prepublish": "npm run clean && npm version patch",
     "version": "npm run build",
-    "postversion": "npm run clean"
+    "postpublish": "npm run clean"
   },
   "repository": {
     "type": "git",
@@ -28,5 +28,7 @@
     "json-loader": "^0.5.4",
     "webpack": "^1.12.10"
   },
-  "dependencies": {}
+  "dependencies": {
+    "ws": "^1.0.1"
+  }
 }
