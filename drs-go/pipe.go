@@ -29,7 +29,8 @@ type Pipe struct {
 }
 
 type Events struct {
-	Connect func(conn *Connection) error
+	Connect    func(conn *Connection) error
+	Disconnect func(conn *Connection) error
 }
 
 func New(transport Transport) (*Pipe, error) {
@@ -67,7 +68,7 @@ func (this *Pipe) Send(cmd *Command) (interface{}, error) {
 		response := <-wait
 		if response.Action == ERROR {
 			return nil, &DRSError{
-				Message: response.Dynamic().String("message"),
+				Message: "Error",
 			}
 		}
 		if response.Action == EXCEPTION {
@@ -95,6 +96,9 @@ func (this *Pipe) Listen() error {
 			}
 		}
 		this.handle(conn)
+		if this.Events.Disconnect != nil {
+			this.Events.Disconnect(conn)
+		}
 	})
 }
 
