@@ -59,6 +59,7 @@ func (this *Pipe) Send(cmd *Command) (interface{}, error) {
 	for {
 		conn, err := this.route(cmd.Action)
 		if err != nil {
+			log.Println(err)
 			time.Sleep(time.Second)
 			continue
 		}
@@ -72,6 +73,7 @@ func (this *Pipe) Send(cmd *Command) (interface{}, error) {
 			}
 		}
 		if response.Action == EXCEPTION {
+			log.Println(response.Body)
 			time.Sleep(time.Second)
 			continue
 		}
@@ -122,6 +124,7 @@ func (this *Pipe) process(conn *Connection, cmd *Command) {
 			delete(this.pending, cmd.Key)
 			return
 		}
+		return
 	}
 
 	handlers, ok := this.handlers[cmd.Action]
