@@ -2,6 +2,7 @@ import JSON from './protocol/json'
 import UUID from './uuid'
 import Error from './error'
 import Connection from './connection'
+import EventEmitter from 'events'
 
 const ACTIONS = {
 	response: 'drs.response',
@@ -25,6 +26,8 @@ export default class Pipe {
 		this._handlers = {}
 		this._connections = {}
 		this._pending = {}
+		this._queue = []
+		this.events = new EventEmitter()
 	}
 
 	on(action, ...handlers) {
@@ -33,32 +36,47 @@ export default class Pipe {
 			this._on(action, handlers)
 	}
 
-	async send(cmd) {
-		if (!cmd.key)
-			cmd.key = UUID.ascending()
+	async _loop() {
+		if (this._working)
+			return
+		const cmd = this._queue.shift()
+		if (!cmd) {
+			return
+		}
+		this._working = true
 		while (true) {
-			let response
 			try {
 				const conn = await this._route(cmd.action)
-				const prom = new Promise((resolve, reject) => {
-					this._pending[cmd.key] = {
-						resolve,
-						reject,
-					}
-				})
 				await conn.send(cmd)
-				response = await prom
 			} catch (ex) {
 				console.log(ex)
 				await timeout(1000)
 				continue
 			}
-			if (response.action === ACTIONS.error)
-				throw response.body
+			break
+		}
+		this._working = false
+		this._loop()
+	}
+
+	async send(cmd) {
+		if (!cmd.key)
+			cmd.key = UUID.ascending()
+		while (true) {
+			const prom = new Promise(resolve => {
+				this._pending[cmd.key] = {
+					resolve,
+				}
+			})
+			this._queue.push(cmd)
+			this._loop()
+			const response = await prom
 			if (response.action === ACTIONS.exception) {
 				await timeout(1000)
 				continue
 			}
+			if (response.action === ACTIONS.error)
+				throw response.body
 			return response.body
 		}
 	}
@@ -77,6 +95,7 @@ export default class Pipe {
 		this._connections[host] = conn
 		conn.raw.on('close', () => delete this._connections[host])
 		this._handle(conn)
+		this.events.emit('connect', conn, host)
 		return conn
 	}
 

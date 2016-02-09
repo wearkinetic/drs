@@ -16,11 +16,12 @@ func (input Dynamic) Set(value interface{}, path ...string) Dynamic {
 	current := input
 	for _, segment := range path {
 		next := current[segment]
-		if next == nil {
-			next = make(Dynamic)
-			current[segment] = next
+		casted, _ := next.(Dynamic)
+		if next == nil || casted == nil {
+			casted = make(Dynamic)
+			current[segment] = casted
 		}
-		current = next.(Dynamic)
+		current = casted
 	}
 	current[field] = value
 	return current

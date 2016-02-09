@@ -3,14 +3,15 @@ import qs from 'querystring'
 import Pipe from '../pipe'
 
 export default class Websocket extends Pipe {
-	constructor(query = {}) {
+	constructor(query = {}, proto = 'ws') {
 		super()
 		this._query = query
+		this._proto = proto
 	}
 
 	_connect(host) {
 		return new Promise((resolve, reject) => {
-			const ws = new WS(`ws://${host}/socket?` + qs.stringify(this._query))
+			const ws = new WS(`${this._proto}://${host}/socket?` + qs.stringify(this._query))
 			ws.once('error', reject)
 			ws.on('open', () => resolve(session(ws)))
 		})

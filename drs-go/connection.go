@@ -2,7 +2,6 @@ package drs
 
 import (
 	"io"
-	"log"
 
 	"github.com/ironbay/drs/drs-go/protocol"
 )
@@ -56,9 +55,8 @@ func (this *Pipe) handle(conn *Connection) {
 			if err.Error() == "EOF" {
 				break
 			}
-			log.Println(err)
 			break
 		}
-		this.process(conn, cmd)
+		go this.process(conn, cmd)
 	}
 }
