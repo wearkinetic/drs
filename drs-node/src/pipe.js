@@ -131,7 +131,7 @@ export default class Pipe {
 				key: cmd.key,
 				action: ACTIONS.exception,
 				body: {
-					nessage: String(ex),
+					message: String(ex),
 				}
 			}
 			if (ex instanceof Error) {
