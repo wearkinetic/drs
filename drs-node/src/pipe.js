@@ -49,7 +49,7 @@ export default class Pipe {
 				const conn = await this._route(cmd.action)
 				await conn.send(cmd)
 			} catch (ex) {
-				console.log(ex)
+				console.log('out', ex)
 				await timeout(1000)
 				continue
 			}
@@ -105,7 +105,7 @@ export default class Pipe {
 				const cmd = this.protocol.decode(data)
 				await this._process(conn, cmd)
 			} catch (ex) {
-				console.log(ex)
+				console.log('in', ex)
 			}
 		}.bind(this))
 	}
