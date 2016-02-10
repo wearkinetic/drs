@@ -1,6 +1,6 @@
 {
   "name": "drs-node",
-  "version": "0.1.29",
+  "version": "0.1.30",
   "description": "Client for Delta",
   "main": "lib/index.js",
   "scripts": {

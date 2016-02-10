@@ -19,16 +19,16 @@ export default class WS extends Pipe {
 function session(ws) {
 	return {
 		send(data) {
-			return new Promise((resolve, reject) => {
+			return new Promise(resolve => {
 				ws.send(data)
 				resolve()
 			})
 		},
 		on(action, cb) {
 			if (action === 'data')
-				ws.onmessage = data => cb(data)
+				ws.onmessage = msg => cb(msg.data)
 			if (action === 'close')
-				ws.onclose = data => cb()
+				ws.onclose = () => cb()
 		},
 		close() {
 			ws.close()

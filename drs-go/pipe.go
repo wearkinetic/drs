@@ -84,9 +84,11 @@ func (this *Pipe) Send(cmd *Command) (interface{}, error) {
 
 func (this *Pipe) Listen() error {
 	this.On("drs.ping", func(cmd *Command, conn *Connection, ctx Dynamic) (interface{}, error) {
-		conn.Encode(&Command{
-			Action: "ping",
-		})
+		/*
+			conn.Encode(&Command{
+				Action: "ping",
+			})
+		*/
 		return time.Now().Unix(), nil
 	})
 	return this.transport.Listen(func(rw io.ReadWriteCloser) {

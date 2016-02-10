@@ -117,6 +117,7 @@ export default class Pipe {
 				return
 			match.resolve(cmd)
 			delete this._pending[cmd.key]
+			return
 		}
 
 		const handlers = this._handlers[cmd.action]
