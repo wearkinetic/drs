@@ -120,6 +120,8 @@ export default class Pipe {
 		}
 
 		const handlers = this._handlers[cmd.action]
+		if (!handlers)
+			return
 		const ctx = {}
 		let result
 		try {

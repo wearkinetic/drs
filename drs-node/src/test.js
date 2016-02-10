@@ -3,20 +3,13 @@ import WS from './transport/websocket'
 async function start() {
 	const ws = new WS({
 		// token: 'eW2q1S7noJzFwfLwapnQpY9bZP3B4ELGlFuwDZ3f',
-		token: 'djkhaled',
+		token: 'U7Vwcc2kA3XX4H9LLR5mxkhWxZY60RwKIaPFW96P',
 		device: String(Math.random()),
 	})
-	ws.on('jarvis.event', async cmd => {
+	ws.on('mutation', async cmd => {
 		console.log(cmd)
 	})
-	ws.router = () => 'localhost:12000'
-	console.log('Connected')
-	await ws.send({
-		action: 'jarvis.listen',
-		body: {
-			kind: 'convo.hello',
-		},
-	})
+	ws.router = () => 'drs.virginia.inboxtheapp.com'
 	await ws.send({
 		action: 'jarvis.event',
 		body: {
