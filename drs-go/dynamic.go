@@ -27,17 +27,26 @@ func (input Dynamic) Set(value interface{}, path ...string) Dynamic {
 	return current
 }
 
-func (input Dynamic) Get(path ...string) (interface{}, error) {
+func (input Dynamic) MustGet(path ...string) (interface{}, error) {
 	field, rest := path[len(path)-1], path[:len(path)-1]
 	current := input
+	var ok bool
 	for _, segment := range rest {
 		next := current[segment]
 		if next == nil {
 			return nil, errors.New("Path does not exist")
 		}
-		current = next.(Dynamic)
+		current, ok = next.(Dynamic)
+		if !ok {
+			current = Dynamic(next.(map[string]interface{}))
+		}
 	}
 	return current[field], nil
+}
+
+func (input Dynamic) Get(path ...string) interface{} {
+	result, _ := input.MustGet(path...)
+	return result
 }
 
 func (input Dynamic) Keys() []string {
@@ -69,6 +78,6 @@ func (this Dynamic) To(out interface{}) error {
 }
 
 func (this Dynamic) String(key ...string) string {
-	result, _ := this.Get(key...)
+	result := this.Get(key...)
 	return result.(string)
 }
