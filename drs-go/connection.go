@@ -10,6 +10,7 @@ type Connection struct {
 	*protocol.Stream
 	cache map[string]interface{}
 	Raw   io.ReadWriteCloser
+	block chan bool
 }
 
 func (this *Connection) Set(key string, value interface{}) {
@@ -43,6 +44,7 @@ func (this *Pipe) connect(rw io.ReadWriteCloser) *Connection {
 		Stream: this.Protocol(rw),
 		cache:  map[string]interface{}{},
 		Raw:    rw,
+		block:  make(chan bool, 1),
 	}
 	return conn
 }

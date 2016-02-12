@@ -26,6 +26,7 @@ type Pipe struct {
 	connections map[string]*Connection
 	pending     map[string]chan *Command
 	Events      *Events
+	block       chan bool
 }
 
 type Events struct {
@@ -44,6 +45,7 @@ func New(transport Transport) (*Pipe, error) {
 		connections: make(map[string]*Connection),
 		pending:     map[string]chan *Command{},
 		Events:      new(Events),
+		block:       make(chan bool, 1),
 	}, nil
 }
 
@@ -56,6 +58,7 @@ func (this *Pipe) Send(cmd *Command) (interface{}, error) {
 	if cmd.Key == "" {
 		cmd.Key = uuid.Ascending()
 	}
+	this.block <- true
 	for {
 		conn, err := this.route(cmd.Action)
 		if err != nil {
@@ -66,6 +69,10 @@ func (this *Pipe) Send(cmd *Command) (interface{}, error) {
 		wait := make(chan *Command)
 		this.pending[cmd.Key] = wait
 		err = conn.Encode(cmd)
+		if err != nil {
+			continue
+		}
+		<-this.block
 		response := <-wait
 		if response.Action == ERROR {
 			return nil, &DRSError{
@@ -75,6 +82,7 @@ func (this *Pipe) Send(cmd *Command) (interface{}, error) {
 		if response.Action == EXCEPTION {
 			log.Println(response.Body)
 			time.Sleep(time.Second)
+			this.block <- true
 			continue
 		}
 		// TODO: Handle exceptions vs errors
