@@ -8,17 +8,17 @@ import (
 
 type Connection struct {
 	*protocol.Stream
-	cache map[string]interface{}
+	Cache map[string]interface{}
 	Raw   io.ReadWriteCloser
 	block chan bool
 }
 
 func (this *Connection) Set(key string, value interface{}) {
-	this.cache[key] = value
+	this.Cache[key] = value
 }
 
 func (this *Connection) Get(key string) interface{} {
-	return this.cache[key]
+	return this.Cache[key]
 }
 
 func (this *Pipe) dial(host string) (*Connection, error) {
@@ -42,7 +42,7 @@ func (this *Pipe) dial(host string) (*Connection, error) {
 func (this *Pipe) connect(rw io.ReadWriteCloser) *Connection {
 	conn := &Connection{
 		Stream: this.Protocol(rw),
-		cache:  map[string]interface{}{},
+		Cache:  map[string]interface{}{},
 		Raw:    rw,
 		block:  make(chan bool, 1),
 	}
@@ -50,6 +50,7 @@ func (this *Pipe) connect(rw io.ReadWriteCloser) *Connection {
 }
 
 func (this *Pipe) handle(conn *Connection) {
+	conn.Raw.Close()
 	for {
 		cmd := new(Command)
 		err := conn.Decode(&cmd)

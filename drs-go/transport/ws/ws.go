@@ -10,7 +10,7 @@ import (
 )
 
 type Transport struct {
-	query drs.Dynamic
+	query map[string]interface{}
 }
 
 func (this *Transport) On(action string) error {
@@ -43,6 +43,6 @@ func (this *Transport) Connect(host string) (io.ReadWriteCloser, error) {
 
 func New(query map[string]interface{}) (*drs.Pipe, error) {
 	transport := new(Transport)
-	transport.query = drs.Dynamic(query)
+	transport.query = query
 	return drs.New(transport)
 }

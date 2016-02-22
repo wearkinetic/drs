@@ -12,7 +12,7 @@ func Test(t *testing.T, pipe *Pipe) {
 	pipe.Router = func(string) (string, error) {
 		return "localhost", nil
 	}
-	pipe.On("echo", func(cmd *Command, conn *Connection, ctx Dynamic) (interface{}, error) {
+	pipe.On("echo", func(cmd *Command, conn *Connection, ctx map[string]interface{}) (interface{}, error) {
 		log.Println("Got Request", cmd.Body)
 		return cmd.Body, nil
 	})

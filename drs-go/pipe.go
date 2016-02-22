@@ -91,7 +91,7 @@ func (this *Pipe) Send(cmd *Command) (interface{}, error) {
 }
 
 func (this *Pipe) Listen() error {
-	this.On("drs.ping", func(cmd *Command, conn *Connection, ctx Dynamic) (interface{}, error) {
+	this.On("drs.ping", func(cmd *Command, conn *Connection, ctx map[string]interface{}) (interface{}, error) {
 		/*
 			conn.Encode(&Command{
 				Action: "ping",
@@ -141,7 +141,7 @@ func (this *Pipe) process(conn *Connection, cmd *Command) {
 	if !ok {
 		return
 	}
-	ctx := make(Dynamic)
+	ctx := make(map[string]interface{})
 	var result interface{}
 	var err error
 	for _, h := range handlers {
