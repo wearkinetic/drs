@@ -2,6 +2,7 @@ package drs
 
 import (
 	"io"
+	"log"
 
 	"github.com/ironbay/drs/drs-go/protocol"
 )
@@ -50,7 +51,6 @@ func (this *Pipe) connect(rw io.ReadWriteCloser) *Connection {
 }
 
 func (this *Pipe) handle(conn *Connection) {
-	conn.Raw.Close()
 	for {
 		cmd := new(Command)
 		err := conn.Decode(&cmd)
@@ -58,8 +58,10 @@ func (this *Pipe) handle(conn *Connection) {
 			if err.Error() == "EOF" {
 				break
 			}
+			log.Println(err)
 			break
 		}
 		go this.process(conn, cmd)
 	}
+	conn.Raw.Close()
 }
