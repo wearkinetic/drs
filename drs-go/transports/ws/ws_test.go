@@ -7,9 +7,6 @@ import (
 )
 
 func TestTransport(t *testing.T) {
-	result, err := New()
-	if err != nil {
-		t.Fatal(err)
-	}
+	result := New(map[string]interface{}{})
 	drs.Test(t, result)
 }

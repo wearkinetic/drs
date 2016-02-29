@@ -41,7 +41,7 @@ func (this *Transport) Connect(host string) (io.ReadWriteCloser, error) {
 	return ws, nil
 }
 
-func New(query map[string]interface{}) (*drs.Pipe, error) {
+func New(query map[string]interface{}) *drs.Pipe {
 	transport := new(Transport)
 	transport.query = query
 	return drs.New(transport)

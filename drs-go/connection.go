@@ -2,66 +2,86 @@ package drs
 
 import (
 	"io"
-	"log"
 
+	"github.com/ironbay/delta/uuid"
 	"github.com/ironbay/drs/drs-go/protocol"
 )
 
+const (
+	ERROR     = "drs.error"
+	RESPONSE  = "drs.response"
+	EXCEPTION = "drs.exception"
+)
+
 type Connection struct {
-	*protocol.Stream
-	Cache map[string]interface{}
-	Raw   io.ReadWriteCloser
-	block chan bool
+	*Processor
+	stream  *protocol.Stream
+	Raw     io.ReadWriteCloser
+	pending map[string]chan *Command
 }
 
-func (this *Connection) Set(key string, value interface{}) {
-	this.Cache[key] = value
-}
-
-func (this *Connection) Get(key string) interface{} {
-	return this.Cache[key]
-}
-
-func (this *Pipe) dial(host string) (*Connection, error) {
-	conn, ok := this.connections[host]
-	if ok {
-		return conn, nil
-	}
-	rw, err := this.transport.Connect(host)
+func Dial(transport Transport, proto protocol.Protocol, host string) (*Connection, error) {
+	rw, err := transport.Connect(host)
 	if err != nil {
 		return nil, err
 	}
-	conn = this.connect(rw)
-	this.connections[host] = conn
-	go func() {
-		this.handle(conn)
-		delete(this.connections, host)
-	}()
+	conn := NewConnection(rw, proto)
 	return conn, nil
 }
 
-func (this *Pipe) connect(rw io.ReadWriteCloser) *Connection {
-	conn := &Connection{
-		Stream: this.Protocol(rw),
-		Cache:  map[string]interface{}{},
-		Raw:    rw,
-		block:  make(chan bool, 1),
+func NewConnection(rw io.ReadWriteCloser, proto protocol.Protocol) *Connection {
+	return &Connection{
+		Processor: NewProcessor(),
+		stream:    proto(rw),
+		Raw:       rw,
+		pending:   map[string]chan *Command{},
 	}
-	return conn
 }
 
-func (this *Pipe) handle(conn *Connection) {
+func (this *Connection) Send(cmd *Command) (interface{}, error) {
+	if cmd.Key == "" {
+		cmd.Key = uuid.Ascending()
+	}
+	wait := make(chan *Command)
+	this.pending[cmd.Key] = wait
+	err := this.stream.Encode(cmd)
+	if err != nil {
+		return nil, err
+	}
+	response := <-wait
+	if response.Action == ERROR {
+		return nil, &DRSError{
+			Message: response.Body.(string),
+		}
+	}
+	if response.Action == EXCEPTION || response.Action == ERROR {
+		args := cmd.Map()
+		return nil, &DRSError{
+			Message: args["message"].(string),
+			Kind:    args["kind"].(string),
+		}
+	}
+	return response.Body, nil
+}
+
+func (this *Connection) Read() {
 	for {
 		cmd := new(Command)
-		err := conn.Decode(&cmd)
+		err := this.stream.Decode(cmd)
 		if err != nil {
 			if err.Error() == "EOF" {
 				break
 			}
-			log.Println(err)
-			break
 		}
-		go this.process(conn, cmd)
+		if cmd.Action == RESPONSE || cmd.Action == ERROR || cmd.Action == EXCEPTION {
+			waiting, ok := this.pending[cmd.Key]
+			if ok {
+				waiting <- cmd
+				delete(this.pending, cmd.Key)
+				continue
+			}
+		}
+		result, err := this.process(cmd, this)
+		this.respond(this, cmd, result, err)
 	}
-	conn.Raw.Close()
 }

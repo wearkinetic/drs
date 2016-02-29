@@ -1,23 +1,80 @@
 package drs
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"time"
 
-	"github.com/ironbay/delta/uuid"
 	"github.com/ironbay/drs/drs-go/protocol"
 )
 
-const PORT = 12000
+type Pipe struct {
+	Protocol  protocol.Protocol
+	Router    RouterHandler
+	transport Transport
+	*Processor
+	connections map[string]*Connection
+}
 
-const (
-	ERROR     = "drs.error"
-	RESPONSE  = "drs.response"
-	EXCEPTION = "drs.exception"
-)
+func New(transport Transport) *Pipe {
+	return &Pipe{
+		Processor:   NewProcessor(),
+		Protocol:    protocol.JSON,
+		connections: map[string]*Connection{},
+		transport:   transport,
+	}
+}
 
+func (this *Pipe) Send(cmd *Command) (interface{}, error) {
+	for {
+		conn, err := this.route(cmd.Action)
+		if err != nil {
+			log.Println(err)
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		result, err := conn.Send(cmd)
+		log.Println(result)
+		casted, ok := err.(*DRSError)
+		if !ok || casted.Kind == "exception" {
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		return result, err
+	}
+}
+
+func (this *Pipe) route(action string) (*Connection, error) {
+	host, err := this.Router(action)
+	if err != nil {
+		return nil, err
+	}
+	match, ok := this.connections[host]
+	if ok {
+		return match, nil
+	}
+	conn, err := Dial(this.transport, this.Protocol, host)
+	if err != nil {
+		return nil, err
+	}
+	conn.Redirect = this.Processor
+	this.connections[host] = conn
+	go func() {
+		conn.Read()
+		delete(this.connections, host)
+	}()
+	return conn, nil
+}
+
+func (this *Pipe) Listen() error {
+	return this.transport.Listen(func(rw io.ReadWriteCloser) {
+		conn := NewConnection(rw, this.Protocol)
+		conn.Redirect = this.Processor
+		conn.Read()
+	})
+}
+
+/*
 type Pipe struct {
 	transport   Transport
 	Router      RouterHandler
@@ -43,7 +100,6 @@ func New(transport Transport) (*Pipe, error) {
 		Protocol:    protocol.JSON,
 		handlers:    make(map[string][]CommandHandler),
 		connections: make(map[string]*Connection),
-		pending:     map[string]chan *Command{},
 		Events:      new(Events),
 		block:       make(chan bool, 1),
 	}, nil
@@ -51,7 +107,6 @@ func New(transport Transport) (*Pipe, error) {
 
 func (this *Pipe) On(action string, handlers ...CommandHandler) error {
 	this.handlers[action] = handlers
-	return this.transport.On(action)
 }
 
 func (this *Pipe) Send(cmd *Command) (interface{}, error) {
@@ -68,7 +123,7 @@ func (this *Pipe) Send(cmd *Command) (interface{}, error) {
 		}
 		wait := make(chan *Command)
 		this.pending[cmd.Key] = wait
-		err = conn.Encode(cmd)
+		err = conn.Send(cmd)
 		if err != nil {
 			continue
 		}
@@ -92,11 +147,9 @@ func (this *Pipe) Send(cmd *Command) (interface{}, error) {
 
 func (this *Pipe) Listen() error {
 	this.On("drs.ping", func(cmd *Command, conn *Connection, ctx map[string]interface{}) (interface{}, error) {
-		/*
 			conn.Encode(&Command{
 				Action: "ping",
 			})
-		*/
 		return time.Now().Unix(), nil
 	})
 	return this.transport.Listen(func(rw io.ReadWriteCloser) {
@@ -123,7 +176,7 @@ func (this *Pipe) process(conn *Connection, cmd *Command) {
 				Body:   fmt.Sprint(r),
 			}
 			log.Println(r)
-			conn.Encode(response)
+			conn.Send(response)
 		}
 	}()
 
@@ -162,10 +215,10 @@ func (this *Pipe) process(conn *Connection, cmd *Command) {
 			response.Action = ERROR
 			response.Body = casted
 		}
-		conn.Encode(response)
+		conn.Send(response)
 		return
 	}
-	conn.Encode(&Command{
+	conn.Send(&Command{
 		Key:    cmd.Key,
 		Action: RESPONSE,
 		Body:   result,
@@ -179,3 +232,4 @@ func (this *Pipe) route(action string) (*Connection, error) {
 	}
 	return this.dial(host)
 }
+*/
