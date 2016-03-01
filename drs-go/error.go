@@ -2,7 +2,6 @@ package drs
 
 type DRSError struct {
 	Message string `json:"message"`
-	Kind    string `json:"kind"`
 }
 
 func (this *DRSError) Error() string {
@@ -12,13 +11,19 @@ func (this *DRSError) Error() string {
 func Error(message string) *DRSError {
 	return &DRSError{
 		Message: message,
-		Kind:    "error",
 	}
 }
 
-func Exception(message string) *DRSError {
-	return &DRSError{
+type DRSException struct {
+	Message string `json:"message"`
+}
+
+func Exception(message string) *DRSException {
+	return &DRSException{
 		Message: message,
-		Kind:    "exception",
 	}
+}
+
+func (this *DRSException) Error() string {
+	return this.Message
 }

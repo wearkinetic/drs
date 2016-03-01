@@ -36,13 +36,10 @@ func (this *Processor) respond(conn *Connection, cmd *Command, result interface{
 		response := &Command{
 			Key:    cmd.Key,
 			Action: EXCEPTION,
-			Body: &DRSError{
-				Message: err.Error(),
-			},
+			Body:   err.Error(),
 		}
-		if casted, ok := err.(*DRSError); ok {
+		if _, ok := err.(*DRSError); ok {
 			response.Action = ERROR
-			response.Body = casted
 		}
 		conn.Send(response)
 		return

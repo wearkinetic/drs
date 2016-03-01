@@ -2,11 +2,9 @@ package drs
 
 import (
 	"io"
-	"log"
 
 	"github.com/ironbay/delta/uuid"
 	"github.com/ironbay/drs/drs-go/protocol"
-	"github.com/ironbay/dynamic"
 	"github.com/streamrail/concurrent-map"
 )
 
@@ -62,10 +60,8 @@ func (this *Connection) Send(cmd *Command) (interface{}, error) {
 		}
 	}
 	if response.Action == EXCEPTION {
-		args := response.Map()
-		return nil, &DRSError{
-			Message: dynamic.String(args, "message"),
-			Kind:    dynamic.String(args, "kind"),
+		return nil, &DRSException{
+			Message: response.Body.(string),
 		}
 	}
 	return response.Body, nil
@@ -81,7 +77,6 @@ func (this *Connection) Read() {
 			}
 			continue
 		}
-		log.Println(cmd)
 		if cmd.Action == RESPONSE || cmd.Action == ERROR || cmd.Action == EXCEPTION {
 			waiting, ok := this.pending.Get(cmd.Key)
 			if ok {
@@ -92,8 +87,18 @@ func (this *Connection) Read() {
 		}
 		go func() {
 			result, err := this.process(cmd, this)
-			log.Println(result, err)
 			this.respond(this, cmd, result, err)
 		}()
 	}
+	for value := range this.pending.Iter() {
+		value.Val.(chan *Command) <- &Command{
+			Key:    value.Key,
+			Action: EXCEPTION,
+			Body:   "Disconnected",
+		}
+	}
+}
+
+func (this *Connection) Close() {
+	this.Raw.Close()
 }
