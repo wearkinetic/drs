@@ -2,6 +2,7 @@ package drs
 
 import (
 	"io"
+	"log"
 
 	"github.com/ironbay/delta/uuid"
 	"github.com/ironbay/drs/drs-go/protocol"
@@ -15,8 +16,9 @@ const (
 
 type Connection struct {
 	*Processor
-	stream  *protocol.Stream
 	Raw     io.ReadWriteCloser
+	Cache   map[string]interface{}
+	stream  *protocol.Stream
 	pending map[string]chan *Command
 }
 
@@ -32,8 +34,9 @@ func Dial(transport Transport, proto protocol.Protocol, host string) (*Connectio
 func NewConnection(rw io.ReadWriteCloser, proto protocol.Protocol) *Connection {
 	return &Connection{
 		Processor: NewProcessor(),
-		stream:    proto(rw),
 		Raw:       rw,
+		Cache:     map[string]interface{}{},
+		stream:    proto(rw),
 		pending:   map[string]chan *Command{},
 	}
 }
@@ -72,6 +75,8 @@ func (this *Connection) Read() {
 			if err.Error() == "EOF" {
 				break
 			}
+			log.Println(err)
+			continue
 		}
 		if cmd.Action == RESPONSE || cmd.Action == ERROR || cmd.Action == EXCEPTION {
 			waiting, ok := this.pending[cmd.Key]
@@ -81,7 +86,9 @@ func (this *Connection) Read() {
 				continue
 			}
 		}
-		result, err := this.process(cmd, this)
-		this.respond(this, cmd, result, err)
+		go func() {
+			result, err := this.process(cmd, this)
+			this.respond(this, cmd, result, err)
+		}()
 	}
 }

@@ -12,14 +12,21 @@ type Pipe struct {
 	Protocol  protocol.Protocol
 	Router    RouterHandler
 	transport Transport
+	Events    *Events
 	*Processor
 	connections map[string]*Connection
+}
+
+type Events struct {
+	Connect    func(conn *Connection) error
+	Disconnect func(conn *Connection)
 }
 
 func New(transport Transport) *Pipe {
 	return &Pipe{
 		Processor:   NewProcessor(),
 		Protocol:    protocol.JSON,
+		Events:      new(Events),
 		connections: map[string]*Connection{},
 		transport:   transport,
 	}
@@ -34,12 +41,14 @@ func (this *Pipe) Send(cmd *Command) (interface{}, error) {
 			continue
 		}
 		result, err := conn.Send(cmd)
-		log.Println(result)
-		casted, ok := err.(*DRSError)
-		if !ok || casted.Kind == "exception" {
-			time.Sleep(1 * time.Second)
-			continue
+		if err != nil {
+			casted, ok := err.(*DRSError)
+			if !ok || casted.Kind == "exception" {
+				time.Sleep(1 * time.Second)
+				continue
+			}
 		}
+		log.Println(result)
 		return result, err
 	}
 }
@@ -67,10 +76,21 @@ func (this *Pipe) route(action string) (*Connection, error) {
 }
 
 func (this *Pipe) Listen() error {
+	this.On("drs.ping", func(cmd *Command, conn *Connection, ctx map[string]interface{}) (interface{}, error) {
+		return time.Now().Unix() / 1000, nil
+	})
 	return this.transport.Listen(func(rw io.ReadWriteCloser) {
 		conn := NewConnection(rw, this.Protocol)
+		if this.Events.Connect != nil {
+			if err := this.Events.Connect(conn); err != nil {
+				return
+			}
+		}
 		conn.Redirect = this.Processor
 		conn.Read()
+		if this.Events.Disconnect != nil {
+			this.Events.Disconnect(conn)
+		}
 	})
 }
 
