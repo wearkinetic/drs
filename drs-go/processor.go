@@ -47,13 +47,11 @@ func (this *Processor) respond(conn *Connection, cmd *Command, result interface{
 		conn.Send(response)
 		return
 	}
-	if result != nil {
-		conn.Send(&Command{
-			Key:    cmd.Key,
-			Action: RESPONSE,
-			Body:   result,
-		})
-	}
+	conn.Send(&Command{
+		Key:    cmd.Key,
+		Action: RESPONSE,
+		Body:   result,
+	})
 }
 
 func (this *Processor) trigger(cmd *Command, conn *Connection, handlers ...CommandHandler) (interface{}, error) {

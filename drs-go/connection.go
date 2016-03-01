@@ -7,6 +7,7 @@ import (
 	"github.com/ironbay/delta/uuid"
 	"github.com/ironbay/drs/drs-go/protocol"
 	"github.com/ironbay/dynamic"
+	"github.com/streamrail/concurrent-map"
 )
 
 const (
@@ -20,7 +21,8 @@ type Connection struct {
 	Raw     io.ReadWriteCloser
 	Cache   map[string]interface{}
 	stream  *protocol.Stream
-	pending map[string]chan *Command
+	write   chan *Command
+	pending cmap.ConcurrentMap
 }
 
 func Dial(transport Transport, proto protocol.Protocol, host string) (*Connection, error) {
@@ -38,7 +40,8 @@ func NewConnection(rw io.ReadWriteCloser, proto protocol.Protocol) *Connection {
 		Raw:       rw,
 		Cache:     map[string]interface{}{},
 		stream:    proto(rw),
-		pending:   map[string]chan *Command{},
+		write:     make(chan *Command),
+		pending:   cmap.New(),
 	}
 }
 
@@ -47,7 +50,7 @@ func (this *Connection) Send(cmd *Command) (interface{}, error) {
 		cmd.Key = uuid.Ascending()
 	}
 	wait := make(chan *Command)
-	this.pending[cmd.Key] = wait
+	this.pending.Set(cmd.Key, wait)
 	err := this.stream.Encode(cmd)
 	if err != nil {
 		return nil, err
@@ -58,8 +61,8 @@ func (this *Connection) Send(cmd *Command) (interface{}, error) {
 			Message: response.Body.(string),
 		}
 	}
-	if response.Action == EXCEPTION || response.Action == ERROR {
-		args := cmd.Map()
+	if response.Action == EXCEPTION {
+		args := response.Map()
 		return nil, &DRSError{
 			Message: dynamic.String(args, "message"),
 			Kind:    dynamic.String(args, "kind"),
@@ -76,19 +79,20 @@ func (this *Connection) Read() {
 			if err.Error() == "EOF" {
 				break
 			}
-			log.Println(err)
 			continue
 		}
+		log.Println(cmd)
 		if cmd.Action == RESPONSE || cmd.Action == ERROR || cmd.Action == EXCEPTION {
-			waiting, ok := this.pending[cmd.Key]
+			waiting, ok := this.pending.Get(cmd.Key)
 			if ok {
-				waiting <- cmd
-				delete(this.pending, cmd.Key)
+				waiting.(chan *Command) <- cmd
+				this.pending.Remove(cmd.Key)
 				continue
 			}
 		}
 		go func() {
 			result, err := this.process(cmd, this)
+			log.Println(result, err)
 			this.respond(this, cmd, result, err)
 		}()
 	}
