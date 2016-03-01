@@ -6,6 +6,7 @@ import (
 
 	"github.com/ironbay/delta/uuid"
 	"github.com/ironbay/drs/drs-go/protocol"
+	"github.com/ironbay/dynamic"
 )
 
 const (
@@ -60,8 +61,8 @@ func (this *Connection) Send(cmd *Command) (interface{}, error) {
 	if response.Action == EXCEPTION || response.Action == ERROR {
 		args := cmd.Map()
 		return nil, &DRSError{
-			Message: args["message"].(string),
-			Kind:    args["kind"].(string),
+			Message: dynamic.String(args, "message"),
+			Kind:    dynamic.String(args, "kind"),
 		}
 	}
 	return response.Body, nil
