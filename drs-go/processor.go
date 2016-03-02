@@ -51,10 +51,13 @@ func (this *Processor) respond(cmd *Command, conn *Connection, result interface{
 	})
 }
 
-func (this *Processor) trigger(cmd *Command, conn *Connection, handlers ...CommandHandler) (interface{}, error) {
+func (this *Processor) trigger(cmd *Command, conn *Connection, handlers ...CommandHandler) (result interface{}, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
 	ctx := make(map[string]interface{})
-	var result interface{}
-	var err error
 	for _, h := range handlers {
 		result, err = h(cmd, conn, ctx)
 		if err != nil {
