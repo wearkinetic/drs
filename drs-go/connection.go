@@ -8,6 +8,7 @@ import (
 
 	"github.com/ironbay/delta/uuid"
 	"github.com/ironbay/drs/drs-go/protocol"
+	"github.com/ironbay/dynamic"
 	"github.com/streamrail/concurrent-map"
 )
 
@@ -64,12 +65,12 @@ func (this *Connection) Send(cmd *Command) (interface{}, error) {
 	response := <-wait
 	if response.Action == ERROR {
 		return nil, &DRSError{
-			Message: response.Body.(string),
+			Message: dynamic.String(response.Body.(map[string]interface{}), "message"),
 		}
 	}
 	if response.Action == EXCEPTION {
 		return nil, &DRSException{
-			Message: response.Body.(string),
+			Message: dynamic.String(response.Body.(map[string]interface{}), "message"),
 		}
 	}
 	return response.Body, nil

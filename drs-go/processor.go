@@ -41,7 +41,9 @@ func (this *Processor) respond(cmd *Command, conn *Connection, result interface{
 		response := &Command{
 			Key:    cmd.Key,
 			Action: EXCEPTION,
-			Body:   err.Error(),
+			Body: map[string]interface{}{
+				"message": err.Error(),
+			},
 		}
 		if _, ok := err.(*DRSError); ok {
 			response.Action = ERROR
