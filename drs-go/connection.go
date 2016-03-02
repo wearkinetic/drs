@@ -51,6 +51,7 @@ func (this *Connection) Send(cmd *Command) (interface{}, error) {
 	this.pending.Set(cmd.Key, wait)
 	err := this.stream.Encode(cmd)
 	if err != nil {
+		this.pending.Remove(cmd.Key)
 		return nil, err
 	}
 	response := <-wait
@@ -87,7 +88,7 @@ func (this *Connection) Read() {
 		}
 		go func() {
 			result, err := this.process(cmd, this)
-			this.respond(this, cmd, result, err)
+			this.respond(cmd, this, result, err)
 		}()
 	}
 	for value := range this.pending.Iter() {

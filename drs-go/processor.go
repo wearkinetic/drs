@@ -31,7 +31,7 @@ func (this *Processor) process(cmd *Command, conn *Connection) (interface{}, err
 	return nil, nil
 }
 
-func (this *Processor) respond(conn *Connection, cmd *Command, result interface{}, err error) {
+func (this *Processor) respond(cmd *Command, conn *Connection, result interface{}, err error) {
 	if err != nil {
 		response := &Command{
 			Key:    cmd.Key,
@@ -41,10 +41,10 @@ func (this *Processor) respond(conn *Connection, cmd *Command, result interface{
 		if _, ok := err.(*DRSError); ok {
 			response.Action = ERROR
 		}
-		conn.Send(response)
+		conn.stream.Encode(response)
 		return
 	}
-	conn.Send(&Command{
+	conn.stream.Encode(&Command{
 		Key:    cmd.Key,
 		Action: RESPONSE,
 		Body:   result,
