@@ -1,6 +1,9 @@
 package drs
 
-import "log"
+import (
+	"log"
+	"runtime/debug"
+)
 
 type CommandHandler func(cmd *Command, conn *Connection, ctx map[string]interface{}) (interface{}, error)
 
@@ -58,6 +61,7 @@ func (this *Processor) trigger(cmd *Command, conn *Connection, handlers ...Comma
 		if r := recover(); r != nil {
 			err = r.(error)
 			log.Println(err)
+			log.Println(string(debug.Stack()))
 		}
 	}()
 	ctx := make(map[string]interface{})
