@@ -3,6 +3,7 @@ package drs
 import (
 	"io"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/ironbay/drs/drs-go/protocol"
@@ -15,6 +16,7 @@ type Pipe struct {
 	transport Transport
 	Events    *Events
 	*Processor
+	mutex       sync.Mutex
 	connections cmap.ConcurrentMap
 }
 
@@ -30,6 +32,7 @@ func New(transport Transport) *Pipe {
 		Events:      new(Events),
 		connections: cmap.New(),
 		transport:   transport,
+		mutex:       sync.Mutex{},
 	}
 }
 
@@ -60,21 +63,32 @@ func (this *Pipe) route(action string) (*Connection, error) {
 	if err != nil {
 		return nil, err
 	}
-	match, ok := this.connections.Get(host)
-	if ok {
-		return match.(*Connection), nil
+	{
+		match, ok := this.connections.Get(host)
+		if ok {
+			return match.(*Connection), nil
+		}
 	}
-	conn, err := Dial(this.transport, this.Protocol, host)
-	if err != nil {
-		return nil, err
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+	{
+		match, ok := this.connections.Get(host)
+		if ok {
+			return match.(*Connection), nil
+		}
+
+		conn, err := Dial(this.transport, this.Protocol, host)
+		if err != nil {
+			return nil, err
+		}
+		conn.Redirect = this.Processor
+		this.connections.Set(host, conn)
+		go func() {
+			conn.Read()
+			this.connections.Remove(host)
+		}()
+		return conn, nil
 	}
-	conn.Redirect = this.Processor
-	this.connections.Set(host, conn)
-	go func() {
-		conn.Read()
-		this.connections.Remove(host)
-	}()
-	return conn, nil
 }
 
 func (this *Pipe) Listen() error {

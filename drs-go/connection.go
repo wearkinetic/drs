@@ -1,6 +1,7 @@
 package drs
 
 import (
+	"fmt"
 	"io"
 	"sync"
 
@@ -21,10 +22,8 @@ const (
 type Connection struct {
 	*Processor
 	Raw     io.ReadWriteCloser
-	Cache   map[string]interface{}
+	Cache   cmap.ConcurrentMap
 	stream  *protocol.Stream
-	out     chan *Command
-	in      chan *Command
 	mutex   sync.Mutex
 	pending cmap.ConcurrentMap
 }
@@ -42,10 +41,8 @@ func NewConnection(rw io.ReadWriteCloser, proto protocol.Protocol) *Connection {
 	return &Connection{
 		Processor: NewProcessor(),
 		Raw:       rw,
-		Cache:     map[string]interface{}{},
+		Cache:     cmap.New(),
 		stream:    proto(rw),
-		out:       make(chan *Command),
-		in:        make(chan *Command),
 		mutex:     sync.Mutex{},
 		pending:   cmap.New(),
 	}
@@ -70,7 +67,7 @@ func (this *Connection) Send(cmd *Command) (interface{}, error) {
 	}
 	if response.Action == EXCEPTION {
 		return nil, &DRSException{
-			Message: dynamic.String(response.Body.(map[string]interface{}), "message"),
+			Message: fmt.Sprint(response.Body),
 		}
 	}
 	return response.Body, nil
