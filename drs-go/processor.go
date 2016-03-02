@@ -1,5 +1,7 @@
 package drs
 
+import "log"
+
 type CommandHandler func(cmd *Command, conn *Connection, ctx map[string]interface{}) (interface{}, error)
 
 type Processor struct {
@@ -54,6 +56,7 @@ func (this *Processor) respond(cmd *Command, conn *Connection, result interface{
 func (this *Processor) trigger(cmd *Command, conn *Connection, handlers ...CommandHandler) (result interface{}, err error) {
 	defer func() {
 		if r := recover(); r != nil {
+			log.Println(err)
 			err = r.(error)
 		}
 	}()
