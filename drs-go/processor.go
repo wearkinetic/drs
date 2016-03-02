@@ -43,10 +43,10 @@ func (this *Processor) respond(cmd *Command, conn *Connection, result interface{
 		if _, ok := err.(*DRSError); ok {
 			response.Action = ERROR
 		}
-		conn.stream.Encode(response)
+		conn.Fire(response)
 		return
 	}
-	conn.stream.Encode(&Command{
+	conn.Fire(&Command{
 		Key:    cmd.Key,
 		Action: RESPONSE,
 		Body:   result,
@@ -56,8 +56,8 @@ func (this *Processor) respond(cmd *Command, conn *Connection, result interface{
 func (this *Processor) trigger(cmd *Command, conn *Connection, handlers ...CommandHandler) (result interface{}, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Println(err)
 			err = r.(error)
+			log.Println(err)
 		}
 	}()
 	ctx := make(map[string]interface{})

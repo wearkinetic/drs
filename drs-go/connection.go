@@ -2,6 +2,9 @@ package drs
 
 import (
 	"io"
+	"sync"
+
+	_ "net/http/pprof"
 
 	"github.com/ironbay/delta/uuid"
 	"github.com/ironbay/drs/drs-go/protocol"
@@ -19,7 +22,9 @@ type Connection struct {
 	Raw     io.ReadWriteCloser
 	Cache   map[string]interface{}
 	stream  *protocol.Stream
-	write   chan *Command
+	out     chan *Command
+	in      chan *Command
+	mutex   sync.Mutex
 	pending cmap.ConcurrentMap
 }
 
@@ -38,7 +43,9 @@ func NewConnection(rw io.ReadWriteCloser, proto protocol.Protocol) *Connection {
 		Raw:       rw,
 		Cache:     map[string]interface{}{},
 		stream:    proto(rw),
-		write:     make(chan *Command),
+		out:       make(chan *Command),
+		in:        make(chan *Command),
+		mutex:     sync.Mutex{},
 		pending:   cmap.New(),
 	}
 }
@@ -66,6 +73,13 @@ func (this *Connection) Send(cmd *Command) (interface{}, error) {
 		}
 	}
 	return response.Body, nil
+}
+
+func (this *Connection) Fire(cmd *Command) error {
+	if cmd.Key == "" {
+		cmd.Key = uuid.Ascending()
+	}
+	return this.stream.Encode(cmd)
 }
 
 func (this *Connection) Read() {
