@@ -3,6 +3,7 @@ package drs
 import (
 	"fmt"
 	"io"
+	"log"
 	"sync"
 
 	_ "net/http/pprof"
@@ -103,6 +104,7 @@ func (this *Connection) Read() {
 			this.respond(cmd, this, result, err)
 		}()
 	}
+	log.Println("Started cleaning", len(this.pending))
 	for value := range this.pending.Iter() {
 		value.Val.(chan *Command) <- &Command{
 			Key:    value.Key,
@@ -110,6 +112,7 @@ func (this *Connection) Read() {
 			Body:   "Disconnected",
 		}
 	}
+	log.Println("Done cleaning")
 }
 
 func (this *Connection) Close() {
