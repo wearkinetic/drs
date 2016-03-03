@@ -27,6 +27,7 @@ export default class Pipe {
 		this._connections = {}
 		this._pending = {}
 		this._queue = []
+		this.forceClose = false
 		this.events = new EventEmitter()
 	}
 
@@ -44,7 +45,7 @@ export default class Pipe {
 			return
 		}
 		this._working = true
-		while (true) {
+		while (!this.forceClose) {
 			try {
 				const conn = await this._route(cmd.action)
 				await conn.send(cmd)
@@ -152,6 +153,9 @@ export default class Pipe {
 	}
 
 	close() {
+		this.forceClose = true
+		this._pending = {}
+		this._queue = []
 		return Object.keys(this._connections).map(key => {
 			this._connections[key].raw.close()
 		})
