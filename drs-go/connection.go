@@ -104,7 +104,7 @@ func (this *Connection) Read() {
 			this.respond(cmd, this, result, err)
 		}()
 	}
-	log.Println("Started cleaning", len(this.pending))
+	log.Println("Started cleaning", this.pending.Count())
 	for value := range this.pending.Iter() {
 		value.Val.(chan *Command) <- &Command{
 			Key:    value.Key,
