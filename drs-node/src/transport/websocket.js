@@ -37,7 +37,7 @@ function session(ws) {
 		},
 		close() {
 			ws.close()
-			ws.closing = true
+			ws.forceClose = true
 		}
 	}
 }
