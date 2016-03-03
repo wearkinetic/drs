@@ -37,6 +37,8 @@ export default class Pipe {
 	}
 
 	async _loop() {
+		if (this.forceClose)
+			return
 		if (this._working)
 			return
 		const cmd = this._queue.shift()
