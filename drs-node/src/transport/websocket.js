@@ -36,7 +36,6 @@ function session(ws) {
 				ws.on('close', () => cb())
 		},
 		close() {
-			ws.forceClose = true
 			ws.close()
 		}
 	}
