@@ -69,9 +69,9 @@ func (this *Pipe) route(action string) (*Connection, error) {
 			return match.(*Connection), nil
 		}
 	}
-	this.mutex.Lock()
-	defer this.mutex.Unlock()
 	{
+		this.mutex.Lock()
+		defer this.mutex.Unlock()
 		match, ok := this.connections.Get(host)
 		if ok {
 			return match.(*Connection), nil
