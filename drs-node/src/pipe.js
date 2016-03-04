@@ -27,7 +27,7 @@ export default class Pipe {
 		this._connections = {}
 		this._pending = {}
 		this._queue = []
-		this.forceClose = false
+		this.closing = false
 		this.events = new EventEmitter()
 	}
 
@@ -45,11 +45,13 @@ export default class Pipe {
 			return
 		}
 		this._working = true
-		while (!this.forceClose) {
+		while (true) {
 			try {
 				const conn = await this._route(cmd.action)
 				await conn.send(cmd)
 			} catch (ex) {
+				if(this.closing)
+					break
 				console.log('out', ex)
 				await timeout(1000)
 				continue
@@ -63,7 +65,7 @@ export default class Pipe {
 	async send(cmd) {
 		if (!cmd.key)
 			cmd.key = UUID.ascending()
-		while (!this.forceClose) {
+		while (true) {
 			const prom = new Promise(resolve => {
 				this._pending[cmd.key] = {
 					resolve,
@@ -80,7 +82,6 @@ export default class Pipe {
 				throw response.body
 			return response.body
 		}
-		throw new Error('force close')
 	}
 
 	async _route(action) {
@@ -154,12 +155,21 @@ export default class Pipe {
 	}
 
 	close() {
-		this.forceClose = true
-		this._pending = {}
-		this._queue = []
-		return Object.keys(this._connections).map(key => {
+		this.closing = true
+		Object.keys(this._connections).map(key => {
 			this._connections[key].raw.close()
 		})
+		Object.keys(this._pending).forEach(key => {
+			this._pending[key].resolve({
+				key: cmd.key,
+				action: ACTIONS.error,
+				body: {
+					message: 'forcing close',
+				},
+			})
+		})
+		this._queue = []
+		return 
 	}
 
 }
