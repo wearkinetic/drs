@@ -103,6 +103,7 @@ func (this *Pipe) Listen() error {
 	return this.transport.Listen(func(rw io.ReadWriteCloser) {
 		atomic.AddInt64(&connections, 1)
 		defer atomic.AddInt64(&connections, -1)
+
 		conn := NewConnection(rw, this.Protocol)
 		if this.Events.Connect != nil {
 			if err := this.Events.Connect(conn); err != nil {
