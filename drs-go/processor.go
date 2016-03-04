@@ -3,6 +3,7 @@ package drs
 import (
 	"log"
 	"runtime/debug"
+	"sync/atomic"
 )
 
 type CommandHandler func(cmd *Command, conn *Connection, ctx map[string]interface{}) (interface{}, error)
@@ -24,6 +25,7 @@ func (this *Processor) On(action string, handlers ...CommandHandler) error {
 }
 
 func (this *Processor) process(cmd *Command, conn *Connection) (interface{}, error) {
+	atomic.AddInt64(&total, 1)
 	if this.Redirect != nil {
 		return this.Redirect.process(cmd, conn)
 	}
