@@ -80,6 +80,7 @@ export default class Pipe {
 				throw response.body
 			return response.body
 		}
+		throw new Error('force close')
 	}
 
 	async _route(action) {
