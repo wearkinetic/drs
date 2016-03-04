@@ -1,8 +1,10 @@
 package drs
 
 import (
+	"encoding/json"
 	"io"
 	"log"
+	"net/http"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -14,6 +16,24 @@ import (
 var connections = int64(0)
 var pending = int64(0)
 var total = int64(0)
+
+func init() {
+	http.HandleFunc("/stats", func(w http.ResponseWriter, req *http.Request) {
+		response(w, 200, map[string]interface{}{
+			"connections": connections,
+			"commands": map[string]interface{}{
+				"total": total,
+			},
+		})
+	})
+}
+
+func response(w http.ResponseWriter, status int, input interface{}) {
+	data, _ := json.Marshal(input)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	w.Write(data)
+}
 
 type Pipe struct {
 	Protocol  protocol.Protocol
