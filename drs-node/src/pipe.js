@@ -161,7 +161,7 @@ export default class Pipe {
 		})
 		Object.keys(this._pending).forEach(key => {
 			this._pending[key].resolve({
-				key: cmd.key,
+				key,
 				action: ACTIONS.error,
 				body: {
 					message: 'forcing close',
