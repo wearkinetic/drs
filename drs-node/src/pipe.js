@@ -63,7 +63,7 @@ export default class Pipe {
 	async send(cmd) {
 		if (!cmd.key)
 			cmd.key = UUID.ascending()
-		while (true) {
+		while (!this.forceClose) {
 			const prom = new Promise(resolve => {
 				this._pending[cmd.key] = {
 					resolve,
