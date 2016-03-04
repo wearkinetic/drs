@@ -49,6 +49,7 @@ func (this *Processor) respond(cmd *Command, conn *Connection, result interface{
 		}
 		if _, ok := err.(*DRSError); ok {
 			response.Action = ERROR
+			atomic.AddInt64(&cerr, 1)
 		} else {
 			atomic.AddInt64(&exceptions, 1)
 		}

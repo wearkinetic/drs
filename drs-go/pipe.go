@@ -17,6 +17,7 @@ var connections = int64(0)
 var pending = int64(0)
 var total = int64(0)
 var exceptions = int64(0)
+var cerr = int64(0)
 
 func init() {
 	http.HandleFunc("/stats", func(w http.ResponseWriter, req *http.Request) {
@@ -25,6 +26,7 @@ func init() {
 			"commands": map[string]interface{}{
 				"total":      total,
 				"exceptions": exceptions,
+				"errors":     cerr,
 			},
 		})
 	})
