@@ -25,10 +25,10 @@ func (this *Processor) On(action string, handlers ...CommandHandler) error {
 }
 
 func (this *Processor) process(cmd *Command, conn *Connection) (interface{}, error) {
-	atomic.AddInt64(&total, 1)
 	if this.Redirect != nil {
 		return this.Redirect.process(cmd, conn)
 	}
+	atomic.AddInt64(&total, 1)
 	{
 		handlers, ok := this.handlers[cmd.Action]
 		if ok {
@@ -49,6 +49,8 @@ func (this *Processor) respond(cmd *Command, conn *Connection, result interface{
 		}
 		if _, ok := err.(*DRSError); ok {
 			response.Action = ERROR
+		} else {
+			atomic.AddInt64(&exceptions, 1)
 		}
 		conn.Fire(response)
 		return

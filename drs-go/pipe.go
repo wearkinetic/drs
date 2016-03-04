@@ -16,13 +16,15 @@ import (
 var connections = int64(0)
 var pending = int64(0)
 var total = int64(0)
+var exceptions = int64(0)
 
 func init() {
 	http.HandleFunc("/stats", func(w http.ResponseWriter, req *http.Request) {
 		response(w, 200, map[string]interface{}{
 			"connections": connections,
 			"commands": map[string]interface{}{
-				"total": total,
+				"total":      total,
+				"exceptions": exceptions,
 			},
 		})
 	})
