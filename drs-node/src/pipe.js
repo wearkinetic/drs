@@ -16,8 +16,11 @@ function timeout(time) {
 	})
 }
 
+let count = 0
+
 export default class Pipe {
 	constructor() {
+		console.log('new drs', count++)
 		this.protocol = JSON
 		this.router = () => {
 			return 'localhost'
@@ -157,6 +160,7 @@ export default class Pipe {
 	}
 
 	close() {
+		console.log('closing drs', count--)
 		this.closing = true
 		this._pending = {}
 		this._queue = []
@@ -173,7 +177,7 @@ export default class Pipe {
 				},
 			})
 		})
-		return 
+		return
 	}
 
 }
