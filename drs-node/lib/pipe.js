@@ -50,7 +50,7 @@ var Pipe = function () {
 	function Pipe() {
 		_classCallCheck(this, Pipe);
 
-		console.log('new drs', count++);
+		count++;
 		this.protocol = _json2.default;
 		this.router = function () {
 			return 'localhost';
@@ -290,6 +290,15 @@ var Pipe = function () {
 							case 5:
 								rw = _context4.sent;
 
+								if (!this.closing) {
+									_context4.next = 9;
+									break;
+								}
+
+								rw.close();
+								throw new _error2.default('closing');
+
+							case 9:
 								conn = new _connection2.default(rw, this.protocol);
 								this._connections[host] = conn;
 								conn.raw.on('close', function () {
@@ -299,7 +308,7 @@ var Pipe = function () {
 								this.events.emit('connect', conn, host);
 								return _context4.abrupt('return', conn);
 
-							case 12:
+							case 15:
 							case 'end':
 								return _context4.stop();
 						}
@@ -496,9 +505,8 @@ var Pipe = function () {
 		value: function close() {
 			var _this3 = this;
 
-			console.log('closing drs', count--);
+			count--;
 			this.closing = true;
-			this._pending = {};
 			this._queue = [];
 			this.events.removeAllLiseners('connect');
 			Object.keys(this._connections).map(function (key) {
@@ -521,3 +529,8 @@ var Pipe = function () {
 }();
 
 exports.default = Pipe;
+
+
+setInterval(function () {
+	return console.log('total drs: ' + count);
+}, 10000);
