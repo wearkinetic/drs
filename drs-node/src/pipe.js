@@ -20,7 +20,7 @@ let count = 0
 
 export default class Pipe {
 	constructor() {
-		console.log('new drs', count++)
+		count++
 		this.protocol = JSON
 		this.router = () => {
 			return 'localhost'
@@ -53,7 +53,7 @@ export default class Pipe {
 				const conn = await this._route(cmd.action)
 				await conn.send(cmd)
 			} catch (ex) {
-				if(this.closing)
+				if (this.closing)
 					break
 				console.log('out', ex)
 				await timeout(1000)
@@ -99,6 +99,10 @@ export default class Pipe {
 		if (conn)
 			return conn
 		const rw = await this._connect(host)
+		if (this.closing) {
+			rw.close()
+			throw new Error('closing')
+		}
 		conn = new Connection(rw, this.protocol)
 		this._connections[host] = conn
 		conn.raw.on('close', () => delete this._connections[host])
@@ -160,9 +164,8 @@ export default class Pipe {
 	}
 
 	close() {
-		console.log('closing drs', count--)
+		count--
 		this.closing = true
-		this._pending = {}
 		this._queue = []
 		this.events.removeAllLiseners('connect')
 		Object.keys(this._connections).map(key => {
@@ -181,3 +184,5 @@ export default class Pipe {
 	}
 
 }
+
+setInterval(() => console.log('total drs: ' + count), 10000)
