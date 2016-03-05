@@ -63,6 +63,8 @@ export default class Pipe {
 	}
 
 	async send(cmd) {
+		if (this.closing)
+			throw new Error('forcing close')
 		if (!cmd.key)
 			cmd.key = UUID.ascending()
 		while (true) {
@@ -156,6 +158,9 @@ export default class Pipe {
 
 	close() {
 		this.closing = true
+		this._pending = {}
+		this._queue = []
+		this.events.removeAllLiseners('connect')
 		Object.keys(this._connections).map(key => {
 			this._connections[key].raw.close()
 		})
@@ -168,7 +173,6 @@ export default class Pipe {
 				},
 			})
 		})
-		this._queue = []
 		return 
 	}
 
