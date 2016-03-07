@@ -38,6 +38,7 @@ func (this *Processor) process(cmd *Command, conn *Connection) (interface{}, err
 
 func (this *Processor) respond(cmd *Command, conn *Connection, result interface{}, err error) {
 	if err != nil {
+		log.Println(err)
 		response := &Command{
 			Key:    cmd.Key,
 			Action: EXCEPTION,

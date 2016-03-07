@@ -1,6 +1,7 @@
 package drs
 
 import (
+	"errors"
 	"io"
 	"log"
 	"sync"
@@ -56,6 +57,10 @@ func (this *Pipe) Send(cmd *Command) (interface{}, error) {
 		}
 		return result, err
 	}
+}
+
+func (this *Pipe) Broadcast(cmd *Command) error {
+	return errors.New("Not implemented")
 }
 
 func (this *Pipe) route(action string) (*Connection, error) {
