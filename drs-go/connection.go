@@ -89,15 +89,15 @@ func (this *Connection) Read() {
 			log.Println("Connection closing because", err)
 			break
 		}
-		if cmd.Action == RESPONSE || cmd.Action == ERROR || cmd.Action == EXCEPTION {
-			waiting, ok := this.pending.Get(cmd.Key)
-			if ok {
-				waiting.(chan *Command) <- cmd
-				this.pending.Remove(cmd.Key)
-				continue
-			}
-		}
 		go func() {
+			if cmd.Action == RESPONSE || cmd.Action == ERROR || cmd.Action == EXCEPTION {
+				waiting, ok := this.pending.Get(cmd.Key)
+				if ok {
+					waiting.(chan *Command) <- cmd
+					this.pending.Remove(cmd.Key)
+					return
+				}
+			}
 			result, err := this.process(cmd, this)
 			this.respond(cmd, this, result, err)
 		}()
