@@ -25,7 +25,6 @@ export default class Pipe {
 		this.router = () => {
 			return 'localhost'
 		}
-
 		this._handlers = {}
 		this._connections = {}
 		this._pending = {}
@@ -66,11 +65,11 @@ export default class Pipe {
 	}
 
 	async send(cmd) {
-		if (this.closing)
-			throw new Error('forcing close')
 		if (!cmd.key)
 			cmd.key = UUID.ascending()
 		while (true) {
+			if (this.closing)
+				throw new Error('forcing close')
 			const prom = new Promise(resolve => {
 				this._pending[cmd.key] = {
 					resolve,
@@ -150,8 +149,8 @@ export default class Pipe {
 				}
 			}
 			if (ex instanceof Error) {
-				response.Action = ACTIONS.error
-				response.Body = ex
+				response.action = ACTIONS.error
+				response.body = ex
 			}
 			conn.send(response)
 			return
@@ -168,7 +167,7 @@ export default class Pipe {
 		this.closing = true
 		this._queue = []
 		this.events.removeAllLiseners('connect')
-		Object.keys(this._pending).forEach(key => {
+		Object.values(this._pending).map(key => {
 			this._pending[key].resolve({
 				key,
 				action: ACTIONS.error,
@@ -178,9 +177,7 @@ export default class Pipe {
 			})
 		})
 		this._pending = {}
-		Object.keys(this._connections).map(key => {
-			this._connections[key].raw.close()
-		})
+		Object.values(this._connections).map(conn => conn.raw.close())
 		return
 	}
 
