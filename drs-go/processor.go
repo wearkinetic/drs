@@ -9,8 +9,11 @@ import (
 type CommandHandler func(cmd *Command, conn *Connection, ctx map[string]interface{}) (interface{}, error)
 
 type Processor struct {
-	handlers map[string][]CommandHandler
-	Redirect *Processor
+	handlers   map[string][]CommandHandler
+	Redirect   *Processor
+	errors     int64
+	exceptions int64
+	total      int64
 }
 
 func NewProcessor() *Processor {
@@ -28,7 +31,7 @@ func (this *Processor) process(cmd *Command, conn *Connection) (interface{}, err
 	if this.Redirect != nil {
 		return this.Redirect.process(cmd, conn)
 	}
-	atomic.AddInt64(&total, 1)
+	atomic.AddInt64(&this.total, 1)
 	{
 		handlers, ok := this.handlers[cmd.Action]
 		if ok {
@@ -51,9 +54,9 @@ func (this *Processor) respond(cmd *Command, conn *Connection, result interface{
 		}
 		if _, ok := err.(*DRSError); ok {
 			response.Action = ERROR
-			atomic.AddInt64(&cerr, 1)
+			atomic.AddInt64(&this.errors, 1)
 		} else {
-			atomic.AddInt64(&exceptions, 1)
+			atomic.AddInt64(&this.exceptions, 1)
 		}
 		conn.Fire(response)
 		return

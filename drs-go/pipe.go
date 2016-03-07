@@ -10,25 +10,6 @@ import (
 	"github.com/streamrail/concurrent-map"
 )
 
-var connections = int64(0)
-var pending = int64(0)
-var total = int64(0)
-var exceptions = int64(0)
-var cerr = int64(0)
-
-func init() {
-	http.HandleFunc("/stats", func(w http.ResponseWriter, req *http.Request) {
-		response(w, 200, map[string]interface{}{
-			"connections": connections,
-			"commands": map[string]interface{}{
-				"total":      total,
-				"exceptions": exceptions,
-				"errors":     cerr,
-			},
-		})
-	})
-}
-
 func response(w http.ResponseWriter, status int, input interface{}) {
 	data, _ := json.Marshal(input)
 	w.Header().Set("Content-Type", "application/json")
@@ -45,12 +26,23 @@ type Pipe struct {
 }
 
 func New(transport Transport) *Pipe {
-	return &Pipe{
+	result := &Pipe{
 		Server:    NewServer(transport),
 		outbound:  cmap.New(),
 		transport: transport,
 		mutex:     sync.Mutex{},
 	}
+	http.HandleFunc("/stats", func(w http.ResponseWriter, req *http.Request) {
+		response(w, 200, map[string]interface{}{
+			"connections": result.connections,
+			"commands": map[string]interface{}{
+				"total":      result.total,
+				"exceptions": result.exceptions,
+				"errors":     result.errors,
+			},
+		})
+	})
+	return result
 }
 
 func (this *Pipe) Send(cmd *Command) (interface{}, error) {
