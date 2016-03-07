@@ -2,30 +2,51 @@ package drs
 
 import (
 	"io"
+	"sync/atomic"
+	"time"
 
 	"github.com/ironbay/drs/drs-go/protocol"
+	"github.com/streamrail/concurrent-map"
 )
 
 type Server struct {
 	*Processor
+	Protocol  protocol.Protocol
 	handlers  map[string][]CommandHandler
 	transport Transport
-	proto     protocol.Protocol
+	inbound   cmap.ConcurrentMap
+
+	OnConnect    func(conn *Connection) error
+	OnDisconnect func(conn *Connection)
 }
 
-func NewServer(transport Transport, proto protocol.Protocol) *Server {
+func NewServer(transport Transport) *Server {
 	return &Server{
 		Processor: NewProcessor(),
 		handlers:  make(map[string][]CommandHandler),
 		transport: transport,
-		proto:     proto,
+		Protocol:  protocol.JSON,
 	}
 }
 
 func (this *Server) Listen() error {
+	this.On("drs.ping", func(cmd *Command, conn *Connection, ctx map[string]interface{}) (interface{}, error) {
+		return time.Now().UnixNano() / 1000, nil
+	})
 	return this.transport.Listen(func(rw io.ReadWriteCloser) {
-		conn := NewConnection(rw, this.proto)
+		atomic.AddInt64(&connections, 1)
+		defer atomic.AddInt64(&connections, -1)
+
+		conn := NewConnection(rw, this.Protocol)
+		if this.OnConnect != nil {
+			if err := this.OnConnect(conn); err != nil {
+				return
+			}
+		}
 		conn.Redirect = this.Processor
 		conn.Read()
+		if this.OnDisconnect != nil {
+			this.OnDisconnect(conn)
+		}
 	})
 }

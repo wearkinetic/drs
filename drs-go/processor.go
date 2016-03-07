@@ -41,6 +41,7 @@ func (this *Processor) process(cmd *Command, conn *Connection) (interface{}, err
 func (this *Processor) respond(cmd *Command, conn *Connection, result interface{}, err error) {
 	if err != nil {
 		log.Println(err)
+		log.Println(string(debug.Stack()))
 		response := &Command{
 			Key:    cmd.Key,
 			Action: EXCEPTION,
@@ -68,8 +69,6 @@ func (this *Processor) trigger(cmd *Command, conn *Connection, handlers ...Comma
 	defer func() {
 		if r := recover(); r != nil {
 			err = r.(error)
-			log.Println(err)
-			log.Println(string(debug.Stack()))
 		}
 	}()
 	ctx := make(map[string]interface{})

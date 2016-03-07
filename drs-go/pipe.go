@@ -3,14 +3,10 @@ package drs
 import (
 	"encoding/json"
 	"errors"
-	"io"
-	"log"
 	"net/http"
 	"sync"
-	"sync/atomic"
 	"time"
 
-	"github.com/ironbay/drs/drs-go/protocol"
 	"github.com/streamrail/concurrent-map"
 )
 
@@ -41,25 +37,16 @@ func response(w http.ResponseWriter, status int, input interface{}) {
 }
 
 type Pipe struct {
-	Protocol  protocol.Protocol
+	*Server
 	Router    RouterHandler
 	transport Transport
-	Events    *Events
-	*Processor
-	mutex    sync.Mutex
-	outbound cmap.ConcurrentMap
-}
-
-type Events struct {
-	Connect    func(conn *Connection) error
-	Disconnect func(conn *Connection)
+	mutex     sync.Mutex
+	outbound  cmap.ConcurrentMap
 }
 
 func New(transport Transport) *Pipe {
 	return &Pipe{
-		Processor: NewProcessor(),
-		Protocol:  protocol.JSON,
-		Events:    new(Events),
+		Server:    NewServer(transport),
 		outbound:  cmap.New(),
 		transport: transport,
 		mutex:     sync.Mutex{},
@@ -70,7 +57,6 @@ func (this *Pipe) Send(cmd *Command) (interface{}, error) {
 	for {
 		conn, err := this.route(cmd.Action)
 		if err != nil {
-			log.Println(err)
 			time.Sleep(1 * time.Second)
 			continue
 		}
@@ -97,6 +83,7 @@ func (this *Pipe) route(action string) (*Connection, error) {
 	if err != nil {
 		return nil, err
 	}
+	// TODO: Find out whether double checked locking is bad
 	{
 		match, ok := this.outbound.Get(host)
 		if ok {
@@ -123,28 +110,6 @@ func (this *Pipe) route(action string) (*Connection, error) {
 		}()
 		return conn, nil
 	}
-}
-
-func (this *Pipe) Listen() error {
-	this.On("drs.ping", func(cmd *Command, conn *Connection, ctx map[string]interface{}) (interface{}, error) {
-		return time.Now().UnixNano() / 1000, nil
-	})
-	return this.transport.Listen(func(rw io.ReadWriteCloser) {
-		atomic.AddInt64(&connections, 1)
-		defer atomic.AddInt64(&connections, -1)
-
-		conn := NewConnection(rw, this.Protocol)
-		if this.Events.Connect != nil {
-			if err := this.Events.Connect(conn); err != nil {
-				return
-			}
-		}
-		conn.Redirect = this.Processor
-		conn.Read()
-		if this.Events.Disconnect != nil {
-			this.Events.Disconnect(conn)
-		}
-	})
 }
 
 func (this *Pipe) Close() {

@@ -16,7 +16,7 @@ func (this *Transport) On(action string) error {
 }
 
 func (this *Transport) Listen(ch drs.ConnectionHandler) error {
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%v", drs.PORT))
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%v", 12000))
 	if err != nil {
 		return err
 	}
@@ -42,5 +42,5 @@ func (this *Transport) Connect(host string) (io.ReadWriteCloser, error) {
 
 func New() (*drs.Pipe, error) {
 	transport := new(Transport)
-	return drs.New(transport)
+	return drs.New(transport), nil
 }
