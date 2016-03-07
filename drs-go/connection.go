@@ -3,6 +3,7 @@ package drs
 import (
 	"fmt"
 	"io"
+	"log"
 	"sync"
 
 	_ "net/http/pprof"
@@ -85,10 +86,8 @@ func (this *Connection) Read() {
 		cmd := new(Command)
 		err := this.stream.Decode(cmd)
 		if err != nil {
-			if err.Error() == "EOF" {
-				break
-			}
-			continue
+			log.Println("Connection closing because", err)
+			break
 		}
 		if cmd.Action == RESPONSE || cmd.Action == ERROR || cmd.Action == EXCEPTION {
 			waiting, ok := this.pending.Get(cmd.Key)
