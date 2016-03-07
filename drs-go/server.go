@@ -2,7 +2,6 @@ package drs
 
 import (
 	"io"
-	"sync/atomic"
 	"time"
 
 	"github.com/ironbay/delta/uuid"
@@ -12,11 +11,10 @@ import (
 
 type Server struct {
 	*Processor
-	Protocol    protocol.Protocol
-	handlers    map[string][]CommandHandler
-	transport   Transport
-	inbound     cmap.ConcurrentMap
-	connections int64
+	Protocol  protocol.Protocol
+	handlers  map[string][]CommandHandler
+	transport Transport
+	inbound   cmap.ConcurrentMap
 
 	OnConnect    func(conn *Connection) error
 	OnDisconnect func(conn *Connection)
@@ -42,18 +40,16 @@ func (this *Server) Listen() error {
 		return time.Now().UnixNano() / 1000, nil
 	})
 	return this.transport.Listen(func(rw io.ReadWriteCloser) {
-		atomic.AddInt64(&this.connections, 1)
-		defer atomic.AddInt64(&this.connections, -1)
-
 		conn := NewConnection(rw, this.Protocol)
+		id := uuid.Ascending()
+		this.inbound.Set(id, conn)
+		defer this.inbound.Remove(id)
+
 		if this.OnConnect != nil {
 			if err := this.OnConnect(conn); err != nil {
 				return
 			}
 		}
-		id := uuid.Ascending()
-		this.inbound.Set(id, conn)
-		defer this.inbound.Remove(id)
 		conn.Redirect = this.Processor
 		conn.Read()
 		if this.OnDisconnect != nil {

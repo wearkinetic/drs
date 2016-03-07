@@ -34,7 +34,7 @@ func New(transport Transport) *Pipe {
 	}
 	http.HandleFunc("/stats", func(w http.ResponseWriter, req *http.Request) {
 		response(w, 200, map[string]interface{}{
-			"connections": result.connections,
+			"connections": result.inbound.Count(),
 			"commands": map[string]interface{}{
 				"total":      result.total,
 				"exceptions": result.exceptions,
