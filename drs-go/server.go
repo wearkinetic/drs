@@ -5,6 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ironbay/delta/uuid"
 	"github.com/ironbay/drs/drs-go/protocol"
 	"github.com/streamrail/concurrent-map"
 )
@@ -30,6 +31,12 @@ func NewServer(transport Transport) *Server {
 	}
 }
 
+func (this *Server) Broadcast(cmd *Command) {
+	for kv := range this.inbound.Iter() {
+		kv.Val.(*Connection).Fire(cmd)
+	}
+}
+
 func (this *Server) Listen() error {
 	this.On("drs.ping", func(cmd *Command, conn *Connection, ctx map[string]interface{}) (interface{}, error) {
 		return time.Now().UnixNano() / 1000, nil
@@ -44,6 +51,9 @@ func (this *Server) Listen() error {
 				return
 			}
 		}
+		id := uuid.Ascending()
+		this.inbound.Set(id, conn)
+		defer this.inbound.Remove(id)
 		conn.Redirect = this.Processor
 		conn.Read()
 		if this.OnDisconnect != nil {
