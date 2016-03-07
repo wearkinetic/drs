@@ -1,15 +1,44 @@
 package drs
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"log"
+	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ironbay/drs/drs-go/protocol"
 	"github.com/streamrail/concurrent-map"
 )
+
+var connections = int64(0)
+var pending = int64(0)
+var total = int64(0)
+var exceptions = int64(0)
+var cerr = int64(0)
+
+func init() {
+	http.HandleFunc("/stats", func(w http.ResponseWriter, req *http.Request) {
+		response(w, 200, map[string]interface{}{
+			"connections": connections,
+			"commands": map[string]interface{}{
+				"total":      total,
+				"exceptions": exceptions,
+				"errors":     cerr,
+			},
+		})
+	})
+}
+
+func response(w http.ResponseWriter, status int, input interface{}) {
+	data, _ := json.Marshal(input)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	w.Write(data)
+}
 
 type Pipe struct {
 	Protocol  protocol.Protocol
@@ -17,8 +46,8 @@ type Pipe struct {
 	transport Transport
 	Events    *Events
 	*Processor
-	mutex       sync.Mutex
-	connections cmap.ConcurrentMap
+	mutex    sync.Mutex
+	outbound cmap.ConcurrentMap
 }
 
 type Events struct {
@@ -28,12 +57,12 @@ type Events struct {
 
 func New(transport Transport) *Pipe {
 	return &Pipe{
-		Processor:   NewProcessor(),
-		Protocol:    protocol.JSON,
-		Events:      new(Events),
-		connections: cmap.New(),
-		transport:   transport,
-		mutex:       sync.Mutex{},
+		Processor: NewProcessor(),
+		Protocol:  protocol.JSON,
+		Events:    new(Events),
+		outbound:  cmap.New(),
+		transport: transport,
+		mutex:     sync.Mutex{},
 	}
 }
 
@@ -69,7 +98,7 @@ func (this *Pipe) route(action string) (*Connection, error) {
 		return nil, err
 	}
 	{
-		match, ok := this.connections.Get(host)
+		match, ok := this.outbound.Get(host)
 		if ok {
 			return match.(*Connection), nil
 		}
@@ -77,7 +106,7 @@ func (this *Pipe) route(action string) (*Connection, error) {
 	{
 		this.mutex.Lock()
 		defer this.mutex.Unlock()
-		match, ok := this.connections.Get(host)
+		match, ok := this.outbound.Get(host)
 		if ok {
 			return match.(*Connection), nil
 		}
@@ -87,10 +116,10 @@ func (this *Pipe) route(action string) (*Connection, error) {
 			return nil, err
 		}
 		conn.Redirect = this.Processor
-		this.connections.Set(host, conn)
+		this.outbound.Set(host, conn)
 		go func() {
 			conn.Read()
-			this.connections.Remove(host)
+			this.outbound.Remove(host)
 		}()
 		return conn, nil
 	}
@@ -101,6 +130,9 @@ func (this *Pipe) Listen() error {
 		return time.Now().UnixNano() / 1000, nil
 	})
 	return this.transport.Listen(func(rw io.ReadWriteCloser) {
+		atomic.AddInt64(&connections, 1)
+		defer atomic.AddInt64(&connections, -1)
+
 		conn := NewConnection(rw, this.Protocol)
 		if this.Events.Connect != nil {
 			if err := this.Events.Connect(conn); err != nil {
@@ -116,8 +148,8 @@ func (this *Pipe) Listen() error {
 }
 
 func (this *Pipe) Close() {
-	for value := range this.connections.Iter() {
+	for value := range this.outbound.Iter() {
 		value.Val.(*Connection).Close()
 	}
-	this.connections = cmap.New()
+	this.outbound = cmap.New()
 }

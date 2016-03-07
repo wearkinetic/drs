@@ -16,8 +16,11 @@ function timeout(time) {
 	})
 }
 
+let count = 0
+
 export default class Pipe {
 	constructor() {
+		count++
 		this.protocol = JSON
 		this.router = () => {
 			return 'localhost'
@@ -27,7 +30,7 @@ export default class Pipe {
 		this._connections = {}
 		this._pending = {}
 		this._queue = []
-		this.forceClose = false
+		this.closing = false
 		this.events = new EventEmitter()
 	}
 
@@ -45,11 +48,13 @@ export default class Pipe {
 			return
 		}
 		this._working = true
-		while (!this.forceClose) {
+		while (true) {
 			try {
 				const conn = await this._route(cmd.action)
 				await conn.send(cmd)
 			} catch (ex) {
+				if (this.closing)
+					break
 				console.log('out', ex)
 				await timeout(1000)
 				continue
@@ -61,6 +66,8 @@ export default class Pipe {
 	}
 
 	async send(cmd) {
+		if (this.closing)
+			throw new Error('forcing close')
 		if (!cmd.key)
 			cmd.key = UUID.ascending()
 		while (true) {
@@ -92,6 +99,10 @@ export default class Pipe {
 		if (conn)
 			return conn
 		const rw = await this._connect(host)
+		if (this.closing) {
+			rw.close()
+			throw new Error('closing')
+		}
 		conn = new Connection(rw, this.protocol)
 		this._connections[host] = conn
 		conn.raw.on('close', () => delete this._connections[host])
@@ -153,12 +164,25 @@ export default class Pipe {
 	}
 
 	close() {
-		this.forceClose = true
-		this._pending = {}
+		count--
+		this.closing = true
 		this._queue = []
-		return Object.keys(this._connections).map(key => {
+		this.events.removeAllLiseners('connect')
+		Object.keys(this._connections).map(key => {
 			this._connections[key].raw.close()
 		})
+		Object.keys(this._pending).forEach(key => {
+			this._pending[key].resolve({
+				key,
+				action: ACTIONS.error,
+				body: {
+					message: 'forcing close',
+				},
+			})
+		})
+		return
 	}
 
 }
+
+setInterval(() => console.log('total drs: ' + count), 10000)
