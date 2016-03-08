@@ -15,6 +15,6 @@ export default class Connection {
 
 	async send(cmd) {
 		const data = await this._protocol.encode(cmd)
-		this.raw.send(data)
+		return this.raw.send(data)
 	}
 }
