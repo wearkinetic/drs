@@ -27,6 +27,7 @@ func NewServer(transport Transport) *Server {
 		handlers:  make(map[string][]CommandHandler),
 		transport: transport,
 		Protocol:  protocol.JSON,
+		inbound:   map[string]*Connection{},
 		mutex:     sync.Mutex{},
 	}
 }
