@@ -2,11 +2,11 @@ package drs
 
 import (
 	"io"
+	"sync"
 	"time"
 
 	"github.com/ironbay/delta/uuid"
 	"github.com/ironbay/drs/drs-go/protocol"
-	"github.com/streamrail/concurrent-map"
 )
 
 type Server struct {
@@ -14,7 +14,8 @@ type Server struct {
 	Protocol  protocol.Protocol
 	handlers  map[string][]CommandHandler
 	transport Transport
-	inbound   cmap.ConcurrentMap
+	inbound   map[string]*Connection
+	mutex     sync.Mutex
 
 	OnConnect    func(conn *Connection) error
 	OnDisconnect func(conn *Connection)
@@ -26,12 +27,13 @@ func NewServer(transport Transport) *Server {
 		handlers:  make(map[string][]CommandHandler),
 		transport: transport,
 		Protocol:  protocol.JSON,
+		mutex:     sync.Mutex{},
 	}
 }
 
 func (this *Server) Broadcast(cmd *Command) {
-	for kv := range this.inbound.Iter() {
-		kv.Val.(*Connection).Fire(cmd)
+	for _, value := range this.inbound {
+		value.Fire(cmd)
 	}
 }
 
@@ -42,8 +44,14 @@ func (this *Server) Listen() error {
 	return this.transport.Listen(func(rw io.ReadWriteCloser) {
 		conn := NewConnection(rw, this.Protocol)
 		id := uuid.Ascending()
-		this.inbound.Set(id, conn)
-		defer this.inbound.Remove(id)
+		this.mutex.Lock()
+		this.inbound[id] = conn
+		this.mutex.Unlock()
+		defer func() {
+			this.mutex.Lock()
+			delete(this.inbound, id)
+			this.mutex.Unlock()
+		}()
 
 		if this.OnConnect != nil {
 			if err := this.OnConnect(conn); err != nil {
