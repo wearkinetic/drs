@@ -1,4 +1,4 @@
-export class Processor {
+export default class Processor {
 	constructor() {
 		this._handlers = {}
 		this.redirect = undefined
@@ -14,7 +14,7 @@ export class Processor {
 		const handlers = this.handlers[cmd.action]
 		if (!handlers)
 			return undefined
-		this._trigger(cmd, conn, ...handlers)
+		return this._trigger(cmd, conn, ...handlers)
 	}
 
 	respond(cmd, conn, body) {
