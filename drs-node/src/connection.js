@@ -66,6 +66,7 @@ export default class Connection {
 						delete this._pending[cmd.key]
 						return
 					}
+					return
 				}
 				try {
 					const result = await this._processor.process(cmd)

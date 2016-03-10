@@ -3,7 +3,7 @@ import JSON from './protocol/json'
 import Connection from './connection'
 
 const transport = new WS({
-	token: 'djkhaled',
+	token: 'ZGhD0ptkn0XTk7DbphrvwXPwuOPI2pEB5qIBWqjq',
 	device: String(Math.random()),
 })
 

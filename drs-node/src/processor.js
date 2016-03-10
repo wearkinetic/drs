@@ -11,7 +11,7 @@ export default class Processor {
 	process(cmd, conn) {
 		if (this.redirect)
 			return this.redirect.process(cmd, conn)
-		const handlers = this.handlers[cmd.action]
+		const handlers = this._handlers[cmd.action]
 		if (!handlers)
 			return undefined
 		return this._trigger(cmd, conn, ...handlers)
