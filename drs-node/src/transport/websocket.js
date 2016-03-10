@@ -35,7 +35,8 @@ function session(ws) {
 			ws.on('close', cb)
 		},
 		close() {
-			ws.terminate()
-		}
+			ws.close(1000)
+		},
+		_ws: ws
 	}
 }

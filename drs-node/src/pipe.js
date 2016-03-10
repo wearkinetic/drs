@@ -166,7 +166,6 @@ export default class Pipe {
 		count--
 		this.closing = true
 		this._queue = []
-		this.events.removeAllLiseners('connect')
 		Object.keys(this._pending).map(key => {
 			this._pending[key].resolve({
 				key,
