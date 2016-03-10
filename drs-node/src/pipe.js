@@ -177,7 +177,7 @@ export default class Pipe {
 			})
 		})
 		this._pending = {}
-		Object.values(this._connections).map(conn => conn.raw.close())
+		Object.values(this._connections).map(conn => conn.raw.terminate())
 		return
 	}
 
