@@ -9,8 +9,8 @@ import (
 
 func Test(t *testing.T, pipe *Pipe) {
 	pipe.Protocol = protocol.JSON
-	pipe.Router = func(string) (string, error) {
-		return "localhost:12000", nil
+	pipe.Router = func(string) ([]string, error) {
+		return []string{"localhost:12000"}, nil
 	}
 	pipe.On("echo", func(cmd *Command, conn *Connection, ctx map[string]interface{}) (interface{}, error) {
 		log.Println("Got Request", cmd.Body)
