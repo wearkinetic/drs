@@ -17,7 +17,7 @@ async function start() {
 				op: {
 					'node.test': {
 						$merge: {
-							nice: 'cool',
+							nice: Date.now(),
 						}
 					}
 				}

@@ -40,7 +40,7 @@ func (this *Server) Broadcast(cmd *Command) {
 
 func (this *Server) Listen() error {
 	this.On("drs.ping", func(cmd *Command, conn *Connection, ctx map[string]interface{}) (interface{}, error) {
-		return time.Now().UnixNano() / 1000, nil
+		return time.Now().UnixNano() / int64(time.Millisecond), nil
 	})
 	return this.transport.Listen(func(rw io.ReadWriteCloser) {
 		conn := NewConnection(rw, this.Protocol)
