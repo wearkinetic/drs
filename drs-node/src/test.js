@@ -10,6 +10,9 @@ const transport = new WS({
 async function start() {
 	try {
 		const conn = await Connection.dial(transport, JSON, 'localhost:12000')
+		conn.on('test', () => {
+			console.log('ok')
+		})
 		conn.read()
 		const result = await conn.send({
 			action: 'delta.mutation',

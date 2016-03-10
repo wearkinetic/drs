@@ -9,7 +9,7 @@ export default class Connection {
 		this._protocol = protocol
 		this._pending = {}
 		this._processor = new Processor()
-		this.on = this._processor.on
+		this.on = this._processor.on.bind(this._processor)
 
 		this._interval = setInterval(() => this._ping(), 1000)
 		this._ping()
