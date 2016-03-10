@@ -175,9 +175,9 @@ export default class Pipe {
 					message: 'forcing close',
 				},
 			})
+			delete this._pending[key]
 		})
-		this._pending = {}
-		Object.values(this._connections).map(conn => conn.raw.terminate())
+		Object.values(this._connections).map(conn => conn.raw.close())
 		return
 	}
 
