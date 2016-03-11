@@ -9,7 +9,8 @@ const transport = new WS({
 
 async function start() {
 	try {
-		const conn = await Connection.dial(transport, JSON, 'localhost:12000')
+		const conn = new Connection(JSON)
+		await conn.dial(transport, 'localhost:12000')
 		conn.on('test', () => {
 			console.log('ok')
 		})

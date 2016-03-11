@@ -2,10 +2,15 @@ import UUID from './uuid'
 import { Error, Exception } from './error'
 import Processor from './processor'
 
+function timeout(ms) {
+	return new Promise(resolve => {
+		setTimeout(resolve, ms)
+	})
+}
+
 export default class Connection {
-	constructor(raw, protocol) {
+	constructor(protocol) {
 		this.cache = {}
-		this._raw = raw
 		this._protocol = protocol
 		this._pending = {}
 		this._processor = new Processor()
@@ -55,6 +60,23 @@ export default class Connection {
 		return new Connection(raw, protocol)
 	}
 
+	dial(transport, host) {
+		if (this._closed)
+			return
+		return transport.dial(host)
+			.then(async raw => {
+				this._raw = raw
+				this.read().then(async () => {
+					await timeout(1000)
+					await this.connect(transport, host)
+				})
+			})
+			.catch(async ex => {
+				await timeout(1000)
+				await this.connect(transport, host)
+			})
+	}
+
 	read() {
 		return new Promise(resolve => {
 			this._raw.on('data', async data => {
@@ -77,13 +99,14 @@ export default class Connection {
 			})
 
 			this._raw.on('close', () => {
-				clearInterval(this._interval)
 				resolve()
 			})
 		})
 	}
 
 	close() {
+		this._closed = true
+		clearInterval(this._interval)
 		return this._raw.close()
 	}
 }

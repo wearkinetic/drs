@@ -2,6 +2,8 @@ package drs
 
 import (
 	"io"
+	"os"
+	"os/signal"
 	"sync"
 	"time"
 
@@ -42,6 +44,13 @@ func (this *Server) Listen() error {
 	this.On("drs.ping", func(cmd *Command, conn *Connection, ctx map[string]interface{}) (interface{}, error) {
 		return time.Now().UnixNano() / int64(time.Millisecond), nil
 	})
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt)
+		<-c
+		this.Close()
+		os.Exit(0)
+	}()
 	return this.transport.Listen(func(rw io.ReadWriteCloser) {
 		conn := NewConnection(rw, this.Protocol)
 		id := uuid.Ascending()
@@ -65,4 +74,16 @@ func (this *Server) Listen() error {
 			this.OnDisconnect(conn)
 		}
 	})
+}
+
+func (this *Server) Close() {
+	for _, value := range this.inbound {
+		value.Close()
+	}
+	for {
+		if len(this.inbound) == 0 {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
 }
