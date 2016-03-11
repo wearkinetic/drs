@@ -22,21 +22,21 @@ function session(ws) {
 	return {
 		send(data) {
 			return new Promise((resolve, reject) => {
-				ws.send(data, error => {
-					if (error)
-						reject(error)
+				ws.send(data, err => {
+					if (err)
+						reject(err)
 					resolve()
 				})
 			})
 		},
 		on(action, cb) {
 			if (action === 'data')
-				ws.on('message', data => cb(data))
-			if (action === 'close')
-				ws.on('close', () => cb())
+				return ws.on('message', cb)
+			ws.on('close', cb)
 		},
 		close() {
-			ws.close()
-		}
+			ws.close(1000)
+		},
+		_ws: ws
 	}
 }

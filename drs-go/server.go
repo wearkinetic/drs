@@ -32,10 +32,11 @@ func NewServer(transport Transport) *Server {
 	}
 }
 
-func (this *Server) Broadcast(cmd *Command) {
+func (this *Server) Broadcast(cmd *Command) int {
 	for _, value := range this.inbound {
 		value.Fire(cmd)
 	}
+	return len(this.inbound)
 }
 
 func (this *Server) Listen() error {

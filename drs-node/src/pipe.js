@@ -166,8 +166,7 @@ export default class Pipe {
 		count--
 		this.closing = true
 		this._queue = []
-		this.events.removeAllLiseners('connect')
-		Object.values(this._pending).map(key => {
+		Object.keys(this._pending).map(key => {
 			this._pending[key].resolve({
 				key,
 				action: ACTIONS.error,
@@ -175,8 +174,8 @@ export default class Pipe {
 					message: 'forcing close',
 				},
 			})
+			delete this._pending[key]
 		})
-		this._pending = {}
 		Object.values(this._connections).map(conn => conn.raw.close())
 		return
 	}

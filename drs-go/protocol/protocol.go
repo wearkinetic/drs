@@ -24,6 +24,7 @@ type Protocol func(rw io.ReadWriteCloser) *Stream
 
 var JSON = func(rw io.ReadWriteCloser) *Stream {
 	dc := json.NewDecoder(rw)
+	dc.UseNumber()
 	return &Stream{
 		json.NewEncoder(rw),
 		dc,
