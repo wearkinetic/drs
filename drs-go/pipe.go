@@ -115,5 +115,5 @@ func (this *Pipe) Close() {
 		value.Val.(*Connection).Close()
 	}
 	this.outbound = cmap.New()
-	this.Close()
+	this.Server.Close()
 }

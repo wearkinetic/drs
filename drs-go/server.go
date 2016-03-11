@@ -67,3 +67,15 @@ func (this *Server) Listen() error {
 		}
 	})
 }
+
+func (this *Server) Close() {
+	for _, value := range this.inbound {
+		value.Close()
+	}
+	for {
+		if len(this.inbound) == 0 {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
+}
