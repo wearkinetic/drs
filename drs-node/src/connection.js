@@ -38,9 +38,9 @@ export default class Connection {
 	async send(cmd) {
 		if (!cmd.key)
 			cmd.key = UUID.ascending()
-		const result = await new Promise(resolve => {
+		const result = await new Promise(async resolve => {
 			this._pending[cmd.key] = resolve
-			this.fire(cmd)
+			await this.fire(cmd)
 		})
 		if (result.action === 'drs.error')
 			throw new Error(result.body)
@@ -49,10 +49,17 @@ export default class Connection {
 		return result.body
 	}
 
-	fire(cmd) {
+	async fire(cmd) {
 		if (!cmd.key)
 			cmd.key = UUID.ascending()
-		this._raw.send(this._protocol.encode(cmd))
+		while(!this._closed) {
+			try {
+				this._raw.send(this._protocol.encode(cmd))
+				break
+			} catch (ex) {
+			}
+			await timeout(1000)
+		}
 	}
 
 	static async dial(transport, protocol, host) {
@@ -72,6 +79,7 @@ export default class Connection {
 				})
 			})
 			.catch(async ex => {
+				console.log(ex)
 				await timeout(1000)
 				await this.dial(transport, host)
 			})
@@ -99,6 +107,7 @@ export default class Connection {
 			})
 
 			this._raw.on('close', () => {
+				console.log('closed')
 				resolve()
 			})
 		})

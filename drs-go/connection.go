@@ -81,8 +81,6 @@ func (this *Connection) clear() {
 		}
 	}
 	this.pending = cmap.New()
-	this.raw = nil
-	this.stream = nil
 }
 
 func (this *Connection) Send(cmd *Command) (interface{}, error) {
