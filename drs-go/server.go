@@ -44,7 +44,8 @@ func (this *Server) Listen() error {
 		return time.Now().UnixNano() / 1000, nil
 	})
 	return this.transport.Listen(func(rw io.ReadWriteCloser) {
-		conn := NewConnection(rw, this.Protocol)
+		conn := NewConnection(this.Protocol)
+		conn.accept(rw)
 		id := uuid.Ascending()
 		this.mutex.Lock()
 		this.inbound[id] = conn

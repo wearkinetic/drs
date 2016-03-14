@@ -27,18 +27,28 @@ func (this *Processor) On(action string, handlers ...CommandHandler) error {
 	return nil
 }
 
-func (this *Processor) process(cmd *Command, conn *Connection) (interface{}, error) {
+func (this *Processor) process(cmd *Command, conn *Connection) error {
+	if cmd.Action == RESPONSE || cmd.Action == ERROR || cmd.Action == EXCEPTION {
+		waiting, ok := conn.pending.Get(cmd.Key)
+		if ok {
+			waiting.(chan *Command) <- cmd
+			conn.pending.Remove(cmd.Key)
+			return nil
+		}
+	}
+
 	if this.Redirect != nil {
 		return this.Redirect.process(cmd, conn)
 	}
+
 	atomic.AddInt64(&this.total, 1)
-	{
-		handlers, ok := this.handlers[cmd.Action]
-		if ok {
-			return this.trigger(cmd, conn, handlers...)
-		}
+	handlers, ok := this.handlers[cmd.Action]
+	if ok {
+		result, err := this.trigger(cmd, conn, handlers...)
+		this.respond(cmd, conn, result, err)
+		return nil
 	}
-	return nil, nil
+	return nil
 }
 
 func (this *Processor) respond(cmd *Command, conn *Connection, result interface{}, err error) {

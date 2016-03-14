@@ -95,17 +95,18 @@ func (this *Pipe) route(action string) (*Connection, error) {
 		if ok {
 			return match.(*Connection), nil
 		}
-
-		conn, err := Dial(this.transport, this.Protocol, host)
+		conn := NewConnection(this.Protocol)
+		raw, err := this.transport.Connect(host)
 		if err != nil {
 			return nil, err
 		}
+		conn.accept(raw)
 		conn.Redirect = this.Processor
-		this.outbound.Set(host, conn)
 		go func() {
 			conn.Read()
 			this.outbound.Remove(host)
 		}()
+		this.outbound.Set(host, conn)
 		return conn, nil
 	}
 }
