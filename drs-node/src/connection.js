@@ -68,12 +68,12 @@ export default class Connection {
 				this._raw = raw
 				this.read().then(async () => {
 					await timeout(1000)
-					await this.connect(transport, host)
+					await this.dial(transport, host)
 				})
 			})
 			.catch(async ex => {
 				await timeout(1000)
-				await this.connect(transport, host)
+				await this.dial(transport, host)
 			})
 	}
 
