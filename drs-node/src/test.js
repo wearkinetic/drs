@@ -1,24 +1,37 @@
 import WS from './transport/websocket'
+import JSON from './protocol/json'
+import Connection from './connection'
+
+const transport = new WS({
+	token: 'ZGhD0ptkn0XTk7DbphrvwXPwuOPI2pEB5qIBWqjq',
+	device: String(Math.random()),
+})
 
 async function start() {
-	const ws = new WS({
-		// token: 'eW2q1S7noJzFwfLwapnQpY9bZP3B4ELGlFuwDZ3f',
-		token: 'U7Vwcc2kA3XX4H9LLR5mxkhWxZY60RwKIaPFW96P',
-		device: String(Math.random()),
-	})
-	ws.on('mutation', async cmd => {
-		console.log(cmd)
-	})
-	ws.router = () => 'drs.virginia.inboxtheapp.com'
-	await ws.send({
-		action: 'jarvis.event',
-		body: {
-			kind: 'convo.hello',
-			context: {
-				sender: 'test'
+	try {
+		const conn = new Connection(JSON)
+		await conn.dial(transport, 'localhost:12000')
+		conn.on('test', () => {
+			console.log('ok')
+		})
+		conn.read()
+		const result = await conn.send({
+			action: 'delta.mutation',
+			body: {
+				op: {
+					'node.test': {
+						$merge: {
+							nice: Date.now(),
+						}
+					}
+				}
 			}
-		}
-	})
+		})
+		console.log(result)
+	} catch (ex) {
+		console.log(ex)
+		console.log(ex.stack)
+	}
 }
 
 start()

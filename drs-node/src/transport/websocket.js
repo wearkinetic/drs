@@ -1,42 +1,34 @@
 import WS from 'ws'
 import qs from 'querystring'
-import Pipe from '../pipe'
+import EventEmitter from 'events'
 
-export default class Websocket extends Pipe {
-	constructor(query = {}, proto = 'ws') {
-		super()
+export default class Websocket {
+	constructor(query = {}, secure = false) {
 		this._query = query
-		this._proto = proto
+		this._secure = secure
 	}
 
-	_connect(host) {
+	dial(host) {
 		return new Promise((resolve, reject) => {
-			const ws = new WS(`${this._proto}://${host}/socket?` + qs.stringify(this._query))
+			const ws = new WS(`${this._secure ? 'wss' : 'ws'}://${host}/socket?` + qs.stringify(this._query))
 			ws.once('error', reject)
-			ws.on('open', () => resolve(session(ws)))
+			ws.on('open', () => resolve(new Raw(ws)))
 		})
 	}
 }
 
-function session(ws) {
-	return {
-		send(data) {
-			return new Promise((resolve, reject) => {
-				ws.send(data, err => {
-					if (err)
-						reject(err)
-					resolve()
-				})
-			})
-		},
-		on(action, cb) {
-			if (action === 'data')
-				return ws.on('message', cb)
-			ws.on('close', cb)
-		},
-		close() {
-			ws.close(1000)
-		},
-		_ws: ws
+class Raw extends EventEmitter {
+	constructor(ws) {
+		super()
+		this._ws = ws
+
+		this._ws.on('message', async data => this.emit('data', data))
+		this._ws.on('close', () => this.emit('close'))
+	}
+	send(data) {
+		this._ws.send(data)
+	}
+	close() {
+		this._ws.close()
 	}
 }
