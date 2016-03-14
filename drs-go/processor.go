@@ -120,7 +120,7 @@ func (this *Processor) trigger(cmd *Command, conn *Connection, handlers ...Comma
 	for _, h := range handlers {
 		result, err = h(cmd, conn, ctx)
 		if err != nil {
-			break
+			return nil, err
 		}
 	}
 	return result, err
