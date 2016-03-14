@@ -1,0 +1,26 @@
+{
+  "name": "drs-node",
+  "version": "0.2.11",
+  "description": "Client for Delta",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "babel src -d lib",
+    "test": "babel-node src/test",
+    "clean": "rm -rf lib",
+    "prepublish": "npm run build",
+    "postpublish": "npm run clean"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/ironbay/drs/drs-node.git"
+  },
+  "author": "dax <d@ironbay.digital> (http://ironbay.digital/)",
+  "license": "ISC",
+  "devDependencies": {
+    "eslint": "^1.10.3",
+    "webpack": "^1.12.10"
+  },
+  "dependencies": {
+    "ws": "^1.0.1"
+  }
+}
