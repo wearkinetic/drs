@@ -3,12 +3,17 @@ package drs
 import (
 	"encoding/json"
 	"errors"
+	"math/rand"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/streamrail/concurrent-map"
 )
+
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+}
 
 func response(w http.ResponseWriter, status int, input interface{}) {
 	data, _ := json.Marshal(input)
@@ -71,10 +76,11 @@ func (this *Pipe) Broadcast(cmd *Command) error {
 }
 
 func (this *Pipe) route(action string) (*Connection, error) {
-	host, err := this.Router(action)
+	all, err := this.Router(action)
 	if err != nil {
 		return nil, err
 	}
+	host := all[rand.Intn(len(all))]
 	// TODO: Find out whether double checked locking is bad
 	{
 		match, ok := this.outbound.Get(host)
@@ -89,17 +95,18 @@ func (this *Pipe) route(action string) (*Connection, error) {
 		if ok {
 			return match.(*Connection), nil
 		}
-
-		conn, err := Dial(this.transport, this.Protocol, host)
+		conn := NewConnection(this.Protocol)
+		raw, err := this.transport.Connect(host)
 		if err != nil {
 			return nil, err
 		}
+		conn.accept(raw)
 		conn.Redirect = this.Processor
-		this.outbound.Set(host, conn)
 		go func() {
 			conn.Read()
 			this.outbound.Remove(host)
 		}()
+		this.outbound.Set(host, conn)
 		return conn, nil
 	}
 }

@@ -7,6 +7,6 @@ import (
 )
 
 func TestTransport(t *testing.T) {
-	result := New(map[string]interface{}{})
-	drs.Test(t, result)
+	result := New(map[string]interface{}{"token": "djkhaled"})
+	drs.TestConnection(t, result)
 }

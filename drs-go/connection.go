@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"sync"
+	"time"
 
 	_ "net/http/pprof"
 
@@ -22,31 +23,66 @@ const (
 
 type Connection struct {
 	*Processor
-	Raw     io.ReadWriteCloser
-	Cache   cmap.ConcurrentMap
-	stream  *protocol.Stream
-	mutex   sync.Mutex
-	pending cmap.ConcurrentMap
+	Cache    cmap.ConcurrentMap
+	protocol protocol.Protocol
+	closed   bool
+	raw      io.ReadWriteCloser
+	Raw      io.ReadWriteCloser
+	stream   *protocol.Stream
+	mutex    sync.Mutex
+	pending  cmap.ConcurrentMap
+	write    chan *Command
 }
 
-func Dial(transport Transport, proto protocol.Protocol, host string) (*Connection, error) {
-	rw, err := transport.Connect(host)
-	if err != nil {
-		return nil, err
-	}
-	conn := NewConnection(rw, proto)
-	return conn, nil
-}
-
-func NewConnection(rw io.ReadWriteCloser, proto protocol.Protocol) *Connection {
+func NewConnection(proto protocol.Protocol) *Connection {
 	return &Connection{
 		Processor: NewProcessor(),
-		Raw:       rw,
 		Cache:     cmap.New(),
-		stream:    proto(rw),
-		mutex:     sync.Mutex{},
-		pending:   cmap.New(),
+		// mutex:     sync.Mutex{},
+		pending:  cmap.New(),
+		protocol: proto,
 	}
+}
+
+func Dial(proto protocol.Protocol, transport Transport, host string) *Connection {
+	this := NewConnection(proto)
+	go func() {
+		for {
+			this.mutex.Lock()
+			if this.closed {
+				return
+			}
+			raw, err := transport.Connect(host)
+			if err == nil {
+				this.accept(raw)
+				this.mutex.Unlock()
+				this.Read()
+			} else {
+				this.mutex.Unlock()
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}()
+	return this
+}
+
+func (this *Connection) accept(raw io.ReadWriteCloser) {
+	this.raw = raw
+	this.Raw = raw
+	this.stream = this.protocol(raw)
+}
+
+func (this *Connection) clear() {
+	for value := range this.pending.Iter() {
+		value.Val.(chan *Command) <- &Command{
+			Key:    value.Key,
+			Action: EXCEPTION,
+			Body:   "Disconnected",
+		}
+	}
+	this.pending = cmap.New()
+	this.raw = nil
+	this.stream = nil
 }
 
 func (this *Connection) Send(cmd *Command) (interface{}, error) {
@@ -89,28 +125,16 @@ func (this *Connection) Read() {
 			log.Println("Connection closing because", err)
 			break
 		}
-		go func() {
-			if cmd.Action == RESPONSE || cmd.Action == ERROR || cmd.Action == EXCEPTION {
-				waiting, ok := this.pending.Get(cmd.Key)
-				if ok {
-					waiting.(chan *Command) <- cmd
-					this.pending.Remove(cmd.Key)
-					return
-				}
-			}
-			result, err := this.process(cmd, this)
-			this.respond(cmd, this, result, err)
-		}()
+		go this.process(cmd, this)
 	}
-	for value := range this.pending.Iter() {
-		value.Val.(chan *Command) <- &Command{
-			Key:    value.Key,
-			Action: EXCEPTION,
-			Body:   "Disconnected",
-		}
-	}
+	this.clear()
 }
 
 func (this *Connection) Close() {
-	this.Raw.Close()
+	this.mutex.Lock()
+	this.closed = true
+	if this.raw != nil {
+		this.raw.Close()
+	}
+	this.mutex.Unlock()
 }

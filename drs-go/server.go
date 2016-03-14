@@ -32,18 +32,20 @@ func NewServer(transport Transport) *Server {
 	}
 }
 
-func (this *Server) Broadcast(cmd *Command) {
+func (this *Server) Broadcast(cmd *Command) int {
 	for _, value := range this.inbound {
 		value.Fire(cmd)
 	}
+	return len(this.inbound)
 }
 
 func (this *Server) Listen() error {
 	this.On("drs.ping", func(cmd *Command, conn *Connection, ctx map[string]interface{}) (interface{}, error) {
-		return time.Now().UnixNano() / int64(time.Millisecond), nil
+		return time.Now().UnixNano() / 1000, nil
 	})
 	return this.transport.Listen(func(rw io.ReadWriteCloser) {
-		conn := NewConnection(rw, this.Protocol)
+		conn := NewConnection(this.Protocol)
+		conn.accept(rw)
 		id := uuid.Ascending()
 		this.mutex.Lock()
 		this.inbound[id] = conn

@@ -3,14 +3,16 @@ package drs
 import (
 	"log"
 	"testing"
+	"time"
 
 	"github.com/ironbay/drs/drs-go/protocol"
 )
 
-func Test(t *testing.T, pipe *Pipe) {
+func Test(t *testing.T, transport Transport) {
+	pipe := New(transport)
 	pipe.Protocol = protocol.JSON
-	pipe.Router = func(string) (string, error) {
-		return "localhost:12000", nil
+	pipe.Router = func(string) ([]string, error) {
+		return []string{"localhost:12000"}, nil
 	}
 	pipe.On("echo", func(cmd *Command, conn *Connection, ctx map[string]interface{}) (interface{}, error) {
 		log.Println("Got Request", cmd.Body)
@@ -26,4 +28,10 @@ func Test(t *testing.T, pipe *Pipe) {
 		t.Fatal(err)
 	}
 	log.Println("Got Response", result)
+}
+
+func TestConnection(t *testing.T, transport Transport) {
+	conn := Dial(protocol.JSON, transport, "localhost:12000")
+	time.Sleep(1 * time.Minute)
+	conn.Close()
 }
