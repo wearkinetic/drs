@@ -35,7 +35,7 @@ Connection.prototype._handle = function (cb) {
 	return new Promise(resolve => {
 		this.raw.on('close', () => resolve())
 		this.raw.on('data', data => {
-			console.log(data)
+			this._processor.handle(data)
 		})
 	})
 }
@@ -55,7 +55,6 @@ Connection.prototype.fire = function(cmd) {
 				return
 			}
 			try {
-				console.log('Sending')
 				this.raw.send(JSON.stringify(cmd)).catch(() => setTimeout(loop, 1000))
 				resolve()
 			} catch (ex) {
@@ -73,9 +72,3 @@ var transport = new WS({
 })
 var conn = new Connection()
 conn.dial(transport, 'localhost:12000', true).catch(console.log)
-conn.fire({
-	action: 'delta.sync',
-	body: {
-		offset: '',
-	},
-})
