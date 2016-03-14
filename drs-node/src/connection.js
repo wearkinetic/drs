@@ -116,6 +116,16 @@ export default class Connection {
 	close() {
 		this._closed = true
 		clearInterval(this._interval)
+		Object.keys(this._pending).map(key => {
+			this._pending[key].resolve({
+				key,
+				action: 'drs.exception',
+				body: {
+					message: 'Closing connection'
+				}
+			})
+			delete this._pending[key]
+		})
 		return this._raw.close()
 	}
 }
