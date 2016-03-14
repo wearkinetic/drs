@@ -9,3 +9,9 @@ type Command struct {
 func (this *Command) Map() map[string]interface{} {
 	return this.Body.(map[string]interface{})
 }
+
+const (
+	ERROR     = "drs.error"
+	RESPONSE  = "drs.response"
+	EXCEPTION = "drs.exception"
+)

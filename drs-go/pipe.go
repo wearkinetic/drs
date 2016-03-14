@@ -57,7 +57,7 @@ func (this *Pipe) Send(cmd *Command) (interface{}, error) {
 			time.Sleep(1 * time.Second)
 			continue
 		}
-		result, err := conn.Send(cmd)
+		result, err := conn.Request(cmd)
 		if err != nil {
 			if _, ok := err.(*DRSException); ok {
 				time.Sleep(1 * time.Second)
@@ -103,7 +103,7 @@ func (this *Pipe) route(action string) (*Connection, error) {
 		conn.accept(raw)
 		conn.Redirect = this.Processor
 		go func() {
-			conn.Read()
+			conn.handle()
 			this.outbound.Remove(host)
 		}()
 		this.outbound.Set(host, conn)

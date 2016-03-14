@@ -1,24 +1,30 @@
 package drs
 
 import (
+	"fmt"
 	"log"
 	"runtime/debug"
 	"sync/atomic"
+
+	"github.com/ironbay/delta/uuid"
+	"github.com/streamrail/concurrent-map"
 )
 
 type CommandHandler func(cmd *Command, conn *Connection, ctx map[string]interface{}) (interface{}, error)
 
 type Processor struct {
 	handlers   map[string][]CommandHandler
+	pending    cmap.ConcurrentMap
 	Redirect   *Processor
 	errors     int64
 	exceptions int64
 	total      int64
 }
 
-func NewProcessor() *Processor {
+func newProcessor() *Processor {
 	return &Processor{
 		handlers: map[string][]CommandHandler{},
+		pending:  cmap.New(),
 	}
 }
 
@@ -27,14 +33,40 @@ func (this *Processor) On(action string, handlers ...CommandHandler) error {
 	return nil
 }
 
+func (this *Processor) wait(cmd *Command, cb func() error) (interface{}, error) {
+	if cmd.Key == "" {
+		cmd.Key = uuid.Ascending()
+	}
+	wait := make(chan *Command)
+	this.pending.Set(cmd.Key, wait)
+	err := cb()
+	if err != nil {
+		this.pending.Remove(cmd.Key)
+		return nil, err
+	}
+	response := <-wait
+	if response.Action == ERROR {
+		return nil, &DRSError{
+			Message: fmt.Sprint(response.Body),
+		}
+	}
+	if response.Action == EXCEPTION {
+		return nil, &DRSException{
+			Message: fmt.Sprint(response.Body),
+		}
+	}
+	return response.Body, nil
+}
+
 func (this *Processor) process(cmd *Command, conn *Connection) error {
 	if cmd.Action == RESPONSE || cmd.Action == ERROR || cmd.Action == EXCEPTION {
-		waiting, ok := conn.pending.Get(cmd.Key)
+		waiting, ok := this.pending.Get(cmd.Key)
 		if ok {
 			waiting.(chan *Command) <- cmd
-			conn.pending.Remove(cmd.Key)
+			this.pending.Remove(cmd.Key)
 			return nil
 		}
+		return nil
 	}
 
 	if this.Redirect != nil {

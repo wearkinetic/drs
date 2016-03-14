@@ -12,7 +12,6 @@ import (
 type Server struct {
 	*Processor
 	Protocol  protocol.Protocol
-	handlers  map[string][]CommandHandler
 	transport Transport
 	inbound   map[string]*Connection
 	mutex     sync.Mutex
@@ -23,8 +22,7 @@ type Server struct {
 
 func NewServer(transport Transport) *Server {
 	return &Server{
-		Processor: NewProcessor(),
-		handlers:  make(map[string][]CommandHandler),
+		Processor: newProcessor(),
 		transport: transport,
 		Protocol:  protocol.JSON,
 		inbound:   map[string]*Connection{},
@@ -41,7 +39,7 @@ func (this *Server) Broadcast(cmd *Command) int {
 
 func (this *Server) Listen() error {
 	this.On("drs.ping", func(cmd *Command, conn *Connection, ctx map[string]interface{}) (interface{}, error) {
-		return time.Now().UnixNano() / 1000, nil
+		return time.Now().UnixNano() / int64(time.Millisecond), nil
 	})
 	return this.transport.Listen(func(rw io.ReadWriteCloser) {
 		conn := NewConnection(this.Protocol)
@@ -62,7 +60,8 @@ func (this *Server) Listen() error {
 			}
 		}
 		conn.Redirect = this.Processor
-		conn.Read()
+		conn.handle()
+		conn.Close()
 		if this.OnDisconnect != nil {
 			this.OnDisconnect(conn)
 		}
