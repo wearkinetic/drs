@@ -3,6 +3,7 @@ package drs
 import (
 	"errors"
 	"io"
+	"log"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -88,6 +89,8 @@ func (this *Connection) Fire(cmd *Command) error {
 			var err error
 			if err = this.stream.Encode(cmd); err == nil {
 				return nil
+			} else {
+				log.Println(err)
 			}
 		}
 		time.Sleep(1 * time.Second)
@@ -105,8 +108,8 @@ func (this *Connection) handle() error {
 		}
 		this.process(cmd, this)
 	}
-	this.clear()
 	atomic.StoreInt32(&this.status, OFFLINE)
+	this.clear()
 	return err
 }
 

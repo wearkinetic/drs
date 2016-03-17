@@ -37,13 +37,12 @@ func (this *Processor) wait(cmd *Command, cb func() error) (interface{}, error) 
 	if cmd.Key == "" {
 		cmd.Key = uuid.Ascending()
 	}
-	wait := make(chan *Command)
-	this.pending.Set(cmd.Key, wait)
+	wait := make(chan *Command, 1)
 	err := cb()
 	if err != nil {
-		this.pending.Remove(cmd.Key)
 		return nil, err
 	}
+	this.pending.Set(cmd.Key, wait)
 	response := <-wait
 	if response.Action == ERROR {
 		return nil, &DRSError{
@@ -85,6 +84,8 @@ func (this *Processor) process(cmd *Command, conn *Connection) error {
 
 func (this *Processor) respond(cmd *Command, conn *Connection, result interface{}, err error) {
 	if err != nil {
+		log.Println(err)
+		log.Println(string(debug.Stack()))
 		response := &Command{
 			Key:    cmd.Key,
 			Action: EXCEPTION,
@@ -112,8 +113,6 @@ func (this *Processor) trigger(cmd *Command, conn *Connection, handlers ...Comma
 	defer func() {
 		if r := recover(); r != nil {
 			err = r.(error)
-			log.Println(err)
-			log.Println(string(debug.Stack()))
 		}
 	}()
 	ctx := make(map[string]interface{})
@@ -127,13 +126,13 @@ func (this *Processor) trigger(cmd *Command, conn *Connection, handlers ...Comma
 }
 
 func (this *Processor) clear() {
-	for kv := range this.pending.IterBuffered() {
+	for kv := range this.pending.Iter() {
 		kv.Val.(chan *Command) <- &Command{
 			Action: "drs.exception",
 			Body: map[string]interface{}{
 				"message": "Connection closed",
 			},
 		}
+		this.pending.Remove(kv.Key)
 	}
-
 }
