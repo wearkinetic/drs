@@ -125,3 +125,15 @@ func (this *Processor) trigger(cmd *Command, conn *Connection, handlers ...Comma
 	}
 	return result, err
 }
+
+func (this *Processor) clear() {
+	for kv := range this.pending.IterBuffered() {
+		kv.Val.(chan *Command) <- &Command{
+			Action: "drs.exception",
+			Body: map[string]interface{}{
+				"message": "Connection closed",
+			},
+		}
+	}
+
+}

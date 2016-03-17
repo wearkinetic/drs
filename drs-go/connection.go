@@ -105,6 +105,7 @@ func (this *Connection) handle() error {
 		}
 		this.process(cmd, this)
 	}
+	this.clear()
 	atomic.StoreInt32(&this.status, OFFLINE)
 	return err
 }
