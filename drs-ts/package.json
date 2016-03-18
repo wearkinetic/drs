@@ -1,0 +1,19 @@
+{
+  "name": "drs-js",
+  "version": "1.0.0",
+  "description": "",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "tslint src/*.ts"
+  },
+  "author": "dax <d@ironbay.digital> (http://ironbay.digital/)",
+  "license": "ISC",
+  "dependencies": {
+    "querystring": "^0.2.0",
+    "ws": "^1.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^1.8.9"
+  }
+}

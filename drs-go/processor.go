@@ -23,8 +23,11 @@ type Processor struct {
 
 func newProcessor() *Processor {
 	return &Processor{
-		handlers: map[string][]CommandHandler{},
-		pending:  cmap.New(),
+		handlers:   map[string][]CommandHandler{},
+		pending:    cmap.New(),
+		total:      0,
+		exceptions: 0,
+		errors:     0,
 	}
 }
 
@@ -72,7 +75,7 @@ func (this *Processor) process(cmd *Command, conn *Connection) error {
 		return this.Redirect.process(cmd, conn)
 	}
 
-	atomic.AddInt64(&this.total, 1)
+	// atomic.AddInt64(&this.total, 1)
 	handlers, ok := this.handlers[cmd.Action]
 	if ok {
 		result, err := this.trigger(cmd, conn, handlers...)
