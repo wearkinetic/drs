@@ -3,9 +3,7 @@ package drs
 import (
 	"errors"
 	"io"
-	"log"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/ironbay/delta/uuid"
@@ -15,59 +13,37 @@ import (
 
 type Connection struct {
 	*Processor
-	Cache      cmap.ConcurrentMap
-	status     int32
-	protocol   protocol.Protocol
-	stream     *protocol.Stream
-	raw        io.ReadWriteCloser
-	Raw        io.ReadWriteCloser
-	connecting sync.Mutex
+	Cache    cmap.ConcurrentMap
+	closed   bool
+	protocol protocol.Protocol
+	stream   *protocol.Stream
+	raw      io.ReadWriteCloser
+	sync.RWMutex
 }
-
-const (
-	OFFLINE      = int32(0)
-	ONLINE       = int32(1)
-	RECONNECTING = int32(2)
-	CLOSED       = int32(3)
-)
 
 func NewConnection(protocol protocol.Protocol) *Connection {
 	result := &Connection{
 		Processor: newProcessor(),
 		Cache:     cmap.New(),
-		status:    OFFLINE,
 		protocol:  protocol,
+		RWMutex:   sync.RWMutex{},
 	}
 	return result
 }
 
 func (this *Connection) Dial(transport Transport, host string, reconnect bool) {
 	for {
-		this.connecting.Lock()
-		if atomic.LoadInt32(&this.status) == CLOSED {
-			return
-		}
-		atomic.StoreInt32(&this.status, RECONNECTING)
 		raw, err := transport.Connect(host)
 		if err != nil {
-			this.connecting.Unlock()
 			time.Sleep(1 * time.Second)
 			continue
 		}
-		this.accept(raw)
-		this.connecting.Unlock()
-		err = this.handle()
-		if !reconnect {
+		err = this.handle(raw)
+		if this.closed || !reconnect {
 			return
 		}
 		time.Sleep(1 * time.Second)
 	}
-}
-
-func (this *Connection) accept(raw io.ReadWriteCloser) {
-	this.raw = raw
-	this.Raw = raw
-	this.stream = this.protocol(raw)
 }
 
 func (this *Connection) Request(cmd *Command) (interface{}, error) {
@@ -81,41 +57,57 @@ func (this *Connection) Fire(cmd *Command) error {
 		cmd.Key = uuid.Ascending()
 	}
 	for {
-		snap := atomic.LoadInt32(&this.status)
-		if snap == CLOSED {
+		this.RLock()
+		if this.closed {
+			this.RUnlock()
 			return errors.New("Connection has been closed")
 		}
-		if snap == ONLINE {
-			var err error
-			if err = this.stream.Encode(cmd); err == nil {
+		if this.stream != nil {
+			err := this.stream.Encode(cmd)
+			if err == nil {
+				this.RUnlock()
 				return nil
-			} else {
-				log.Println(err)
 			}
 		}
+		this.RUnlock()
 		time.Sleep(1 * time.Second)
 	}
 }
 
-func (this *Connection) handle() error {
-	atomic.StoreInt32(&this.status, ONLINE)
+func (this *Connection) Raw() io.ReadWriteCloser {
+	this.Lock()
+	defer this.Unlock()
+	return this.raw
+}
+
+func (this *Connection) handle(raw io.ReadWriteCloser) error {
+	this.Lock()
+	if this.closed {
+		this.Unlock()
+		return errors.New("Connection has been closed")
+	}
+	this.raw = raw
+	this.stream = this.protocol(raw)
+	this.Unlock()
+
 	var err error
 	for {
 		cmd := new(Command)
+		this.RLock()
 		err = this.stream.Decode(cmd)
+		this.RUnlock()
 		if err != nil {
 			break
 		}
-		this.process(cmd, this)
+		go this.process(cmd, this)
 	}
-	atomic.StoreInt32(&this.status, OFFLINE)
-	this.clear()
+	// this.clear()
 	return err
 }
 
 func (this *Connection) Close() {
-	this.connecting.Lock()
-	atomic.StoreInt32(&this.status, CLOSED)
+	this.Lock()
+	this.closed = true
 	this.raw.Close()
-	this.connecting.Unlock()
+	this.Unlock()
 }

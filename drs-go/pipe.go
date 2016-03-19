@@ -100,10 +100,9 @@ func (this *Pipe) route(action string) (*Connection, error) {
 		if err != nil {
 			return nil, err
 		}
-		conn.accept(raw)
 		conn.Redirect = this.Processor
 		go func() {
-			conn.handle()
+			conn.handle(raw)
 			this.outbound.Remove(host)
 		}()
 		this.outbound.Set(host, conn)

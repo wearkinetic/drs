@@ -16,7 +16,7 @@ type Server struct {
 	inbound   map[string]*Connection
 	mutex     sync.Mutex
 
-	OnConnect    func(conn *Connection) error
+	OnConnect    func(conn *Connection, raw io.ReadWriteCloser) error
 	OnDisconnect func(conn *Connection)
 }
 
@@ -41,9 +41,8 @@ func (this *Server) Listen() error {
 	this.On("drs.ping", func(cmd *Command, conn *Connection, ctx map[string]interface{}) (interface{}, error) {
 		return time.Now().UnixNano() / int64(time.Millisecond), nil
 	})
-	return this.transport.Listen(func(rw io.ReadWriteCloser) {
+	return this.transport.Listen(func(raw io.ReadWriteCloser) {
 		conn := NewConnection(this.Protocol)
-		conn.accept(rw)
 		id := uuid.Ascending()
 		this.mutex.Lock()
 		this.inbound[id] = conn
@@ -55,12 +54,12 @@ func (this *Server) Listen() error {
 		}()
 
 		if this.OnConnect != nil {
-			if err := this.OnConnect(conn); err != nil {
+			if err := this.OnConnect(conn, raw); err != nil {
 				return
 			}
 		}
 		conn.Redirect = this.Processor
-		conn.handle()
+		conn.handle(raw)
 		conn.Close()
 		if this.OnDisconnect != nil {
 			this.OnDisconnect(conn)

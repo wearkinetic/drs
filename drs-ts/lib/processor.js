@@ -7,18 +7,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments)).next());
     });
 };
-class Command {
-}
 class Processor {
     constructor() {
     }
     on(action, ...handlers) {
         return __awaiter(this, void 0, void 0, function* () {
-            this._hooks[action];
+            this._hooks[action] = handlers;
         });
     }
     process(cmd) {
         return __awaiter(this, void 0, void 0, function* () {
+            console.log(cmd);
         });
     }
 }

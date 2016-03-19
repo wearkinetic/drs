@@ -1,5 +1,6 @@
 import { Raw } from './'
 import Command from './command'
+import Processor from './processor'
 
 function sleep(ms: Number): Promise<void> {
 	return new Promise<void>(resolve => {
@@ -7,8 +8,12 @@ function sleep(ms: Number): Promise<void> {
 	})
 }
 
-abstract class Connection {
+abstract class Connection extends Processor {
 	private _raw: Raw
+	constructor() {
+		super()
+	}
+
 	public async dial(host: string, reconnect: boolean): Promise<void> {
 		while (true) {
 			try {
@@ -31,6 +36,7 @@ abstract class Connection {
 		return new Promise(resolve => {
 			this._raw.onData = data => {
 				const command: Command = JSON.parse(data)
+				this.process(command)
 			}
 			this._raw.onClose = () => {
 				resolve()

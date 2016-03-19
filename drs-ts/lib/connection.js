@@ -7,12 +7,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments)).next());
     });
 };
+const processor_1 = require('./processor');
 function sleep(ms) {
     return new Promise(resolve => {
         setTimeout(resolve, ms);
     });
 }
-class Connection {
+class Connection extends processor_1.default {
+    constructor() {
+        super();
+    }
     dial(host, reconnect) {
         return __awaiter(this, void 0, void 0, function* () {
             while (true) {
@@ -36,6 +40,7 @@ class Connection {
             return new Promise(resolve => {
                 this._raw.onData = data => {
                     const command = JSON.parse(data);
+                    this.process(command);
                 };
                 this._raw.onClose = () => {
                     resolve();

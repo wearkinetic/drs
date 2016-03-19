@@ -6,6 +6,8 @@ abstract class Raw {
 	}
 
 	abstract close(): Promise<void>
+
+	abstract send(data: string)
 }
 
 export default Raw
