@@ -11,8 +11,21 @@ const websocket_1 = require('./transports/websocket');
 function start() {
     return __awaiter(this, void 0, void 0, function* () {
         const ws = new websocket_1.default();
-        console.log(ws);
-        yield ws.dial('localhost:12000', true);
+        ws.dial('localhost:12000', true);
+        for (let i = 0; i < 1000; i++) {
+            try {
+                const result = yield ws.request({
+                    key: undefined,
+                    action: 'drs.ping',
+                    body: {},
+                });
+                console.log(result);
+            }
+            catch (ex) {
+                console.log(ex);
+            }
+        }
+        ws.close();
     });
 }
 start();

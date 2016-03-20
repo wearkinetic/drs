@@ -58,4 +58,7 @@ class WebsocketRaw extends _1.Raw {
             this._ws.close();
         });
     }
+    send(data) {
+        this._ws.send(data);
+    }
 }

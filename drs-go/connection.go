@@ -90,9 +90,32 @@ func (this *Connection) Fire(cmd *Command) error {
 	}
 }
 
+//
+// func (this *Connection) RLock() {
+// 	log.Println("Read Locking")
+// 	log.Println(string(debug.Stack()))
+// 	this.RWMutex.RLock()
+// }
+//
+// func (this *Connection) RUnlock() {
+// 	log.Println("Read Unlocking")
+// 	this.RWMutex.RUnlock()
+// }
+//
+// func (this *Connection) Lock() {
+// 	log.Println("Locking")
+// 	this.RWMutex.Lock()
+// }
+//
+// func (this *Connection) Unlock() {
+// 	log.Println("Unlocking")
+// 	this.RWMutex.Unlock()
+// }
+
 func (this *Connection) handle(raw io.ReadWriteCloser) error {
 	this.Lock()
 	if this.closed {
+		this.Unlock()
 		return errors.New("Connection has been closed")
 	}
 	this.raw = raw
@@ -102,9 +125,7 @@ func (this *Connection) handle(raw io.ReadWriteCloser) error {
 	var err error
 	for {
 		cmd := new(Command)
-		this.RLock()
 		err = this.stream.Decode(cmd)
-		this.RUnlock()
 		if err != nil {
 			break
 		}

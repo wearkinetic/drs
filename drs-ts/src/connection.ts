@@ -10,6 +10,7 @@ function sleep(ms: Number): Promise<void> {
 
 abstract class Connection extends Processor {
 	private _raw: Raw
+	private _closed: boolean
 	constructor() {
 		super()
 	}
@@ -22,9 +23,31 @@ abstract class Connection extends Processor {
 			} catch (ex) {
 				console.log(ex)
 			}
-			if (!reconnect)
+			if (!reconnect || this._closed)
 				return
 			console.log('Reconnecting')
+			await sleep(1000)
+		}
+	}
+
+	public async request(cmd: Command): Promise<Object> {
+		if (!cmd.key)
+			cmd.key = String(Math.random())
+		const result = await this.wait(cmd, () => {
+			this.fire(cmd)
+		})
+		return result
+	}
+
+	public async fire(cmd: Command) {
+		if (!cmd.key)
+			cmd.key = String(Math.random())
+		while(true) {
+			try {
+				this._raw.send(JSON.stringify(cmd))
+				return
+			} catch (ex) {
+			}
 			await sleep(1000)
 		}
 	}
@@ -36,12 +59,22 @@ abstract class Connection extends Processor {
 		return new Promise(resolve => {
 			this._raw.onData = data => {
 				const command: Command = JSON.parse(data)
-				this.process(command)
+				this.process(command, this)
 			}
 			this._raw.onClose = () => {
+				try {
+					this.clear()
+				} catch (ex) {
+					console.log(ex)
+				}
 				resolve()
 			}
 		})
+	}
+
+	public close(): void {
+		this._closed = true
+		this._raw.close()
 	}
 }
 

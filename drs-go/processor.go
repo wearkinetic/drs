@@ -61,18 +61,17 @@ func (this *Processor) wait(cmd *Command, cb func() error) (interface{}, error) 
 }
 
 func (this *Processor) process(cmd *Command, conn *Connection) error {
+	if this.Redirect != nil {
+		return this.Redirect.process(cmd, conn)
+	}
+
 	if cmd.Action == RESPONSE || cmd.Action == ERROR || cmd.Action == EXCEPTION {
 		waiting, ok := this.pending.Get(cmd.Key)
 		if ok {
 			waiting.(chan *Command) <- cmd
 			this.pending.Remove(cmd.Key)
-			return nil
 		}
 		return nil
-	}
-
-	if this.Redirect != nil {
-		return this.Redirect.process(cmd, conn)
 	}
 
 	// atomic.AddInt64(&this.total, 1)

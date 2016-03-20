@@ -45,4 +45,8 @@ class WebsocketRaw extends Raw {
 	async close() {
 		this._ws.close()
 	}
+
+	send(data: string) {
+		this._ws.send(data)
+	}
 }
