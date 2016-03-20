@@ -86,7 +86,6 @@ func (this *Connection) Fire(cmd *Command) error {
 				return nil
 			}
 		}
-		this.RUnlock()
 		time.Sleep(1 * time.Second)
 	}
 }
