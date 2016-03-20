@@ -48,6 +48,10 @@ func (this *Server) Listen() error {
 		this.inbound[id] = conn
 		this.mutex.Unlock()
 		defer func() {
+			conn.Close()
+			if this.OnDisconnect != nil {
+				this.OnDisconnect(conn)
+			}
 			this.mutex.Lock()
 			delete(this.inbound, id)
 			this.mutex.Unlock()
@@ -60,10 +64,6 @@ func (this *Server) Listen() error {
 		}
 		conn.Redirect = this.Processor
 		conn.handle(raw)
-		conn.Close()
-		if this.OnDisconnect != nil {
-			this.OnDisconnect(conn)
-		}
 	})
 }
 

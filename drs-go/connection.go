@@ -31,6 +31,24 @@ func NewConnection(protocol protocol.Protocol) *Connection {
 	return result
 }
 
+func (this *Connection) Raw() io.ReadWriteCloser {
+	this.RLock()
+	defer this.RUnlock()
+	return this.raw
+}
+
+func (this *Connection) Closed() bool {
+	this.RLock()
+	defer this.RUnlock()
+	return this.closed
+}
+
+func (this *Connection) Open() bool {
+	this.RLock()
+	defer this.RUnlock()
+	return this.stream != nil
+}
+
 func (this *Connection) Dial(transport Transport, host string, reconnect bool) {
 	for {
 		raw, err := transport.Connect(host)
@@ -57,15 +75,14 @@ func (this *Connection) Fire(cmd *Command) error {
 		cmd.Key = uuid.Ascending()
 	}
 	for {
-		this.RLock()
-		if this.closed {
-			this.RUnlock()
+		if this.Closed() {
 			return errors.New("Connection has been closed")
 		}
-		if this.stream != nil {
+		if this.Open() {
+			this.RLock()
 			err := this.stream.Encode(cmd)
+			this.RUnlock()
 			if err == nil {
-				this.RUnlock()
 				return nil
 			}
 		}
@@ -74,16 +91,9 @@ func (this *Connection) Fire(cmd *Command) error {
 	}
 }
 
-func (this *Connection) Raw() io.ReadWriteCloser {
-	this.Lock()
-	defer this.Unlock()
-	return this.raw
-}
-
 func (this *Connection) handle(raw io.ReadWriteCloser) error {
 	this.Lock()
 	if this.closed {
-		this.Unlock()
 		return errors.New("Connection has been closed")
 	}
 	this.raw = raw
@@ -101,7 +111,6 @@ func (this *Connection) handle(raw io.ReadWriteCloser) error {
 		}
 		go this.process(cmd, this)
 	}
-	// this.clear()
 	return err
 }
 
@@ -109,5 +118,6 @@ func (this *Connection) Close() {
 	this.Lock()
 	this.closed = true
 	this.raw.Close()
+	this.clear()
 	this.Unlock()
 }
