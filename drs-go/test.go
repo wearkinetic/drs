@@ -20,7 +20,7 @@ func Test(t *testing.T, transport Transport) {
 	})
 	go pipe.Listen()
 	log.Println("Sending...")
-	result, err := pipe.Send(&Command{
+	result, err := pipe.Request(&Command{
 		Action: "echo",
 		Body:   "hello",
 	})

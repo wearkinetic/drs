@@ -41,7 +41,7 @@ func New(transport Transport) *Pipe {
 		response(w, 200, map[string]interface{}{
 			"connections": map[string]interface{}{
 				"inbound":  len(result.inbound),
-				"outbound": len(result.outbound),
+				"outbound": result.outbound.Count(),
 			},
 			"commands": map[string]interface{}{
 				"total":      result.total,
@@ -53,7 +53,7 @@ func New(transport Transport) *Pipe {
 	return result
 }
 
-func (this *Pipe) Send(cmd *Command) (interface{}, error) {
+func (this *Pipe) Request(cmd *Command) (interface{}, error) {
 	for {
 		conn, err := this.route(cmd.Action)
 		if err != nil {
