@@ -39,7 +39,10 @@ func New(transport Transport) *Pipe {
 	}
 	http.HandleFunc("/stats", func(w http.ResponseWriter, req *http.Request) {
 		response(w, 200, map[string]interface{}{
-			"connections": len(result.inbound),
+			"connections": map[string]interface{}{
+				"inbound":  len(result.inbound),
+				"outbound": len(result.outbound),
+			},
 			"commands": map[string]interface{}{
 				"total":      result.total,
 				"exceptions": result.exceptions,
@@ -96,13 +99,9 @@ func (this *Pipe) route(action string) (*Connection, error) {
 			return match.(*Connection), nil
 		}
 		conn := NewConnection(this.Protocol)
-		raw, err := this.transport.Connect(host)
-		if err != nil {
-			return nil, err
-		}
 		conn.Redirect = this.Processor
 		go func() {
-			conn.handle(raw)
+			conn.Dial(this.transport, host, false)
 			this.outbound.Remove(host)
 		}()
 		this.outbound.Set(host, conn)
