@@ -137,7 +137,9 @@ func (this *Connection) handle(raw io.ReadWriteCloser) error {
 func (this *Connection) Close() {
 	this.Lock()
 	this.closed = true
-	this.raw.Close()
+	if this.raw != nil {
+		this.raw.Close()
+	}
 	this.clear()
 	this.Unlock()
 }
