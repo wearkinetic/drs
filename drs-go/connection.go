@@ -121,15 +121,20 @@ func (this *Connection) handle(raw io.ReadWriteCloser) error {
 	this.raw = raw
 	this.stream = this.protocol(raw)
 	this.Unlock()
-
+	// TODO: Considering using channels properly
 	var err error
+	buffer := make(chan bool, 500)
 	for {
 		cmd := new(Command)
 		err = this.stream.Decode(cmd)
+		buffer <- true
 		if err != nil {
 			break
 		}
-		go this.process(cmd, this)
+		go func() {
+			this.process(cmd, this)
+			<-buffer
+		}()
 	}
 	return err
 }
