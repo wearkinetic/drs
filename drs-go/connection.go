@@ -3,7 +3,6 @@ package drs
 import (
 	"errors"
 	"io"
-	"log"
 	"sync"
 	"time"
 
@@ -132,7 +131,6 @@ func (this *Connection) handle(raw io.ReadWriteCloser) error {
 		if err != nil {
 			break
 		}
-		log.Println("Got", cmd)
 		go func() {
 			this.process(cmd, this)
 			<-buffer
