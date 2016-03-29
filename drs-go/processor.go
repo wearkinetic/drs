@@ -32,6 +32,11 @@ func newProcessor() *Processor {
 }
 
 func (this *Processor) On(action string, handlers ...CommandHandler) error {
+	exists, ok := this.handlers[action]
+	if ok {
+		exists = append(exists, handlers...)
+		return nil
+	}
 	this.handlers[action] = handlers
 	return nil
 }

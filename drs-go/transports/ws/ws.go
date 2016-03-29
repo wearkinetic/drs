@@ -18,13 +18,13 @@ func (this *Transport) On(action string) error {
 }
 
 func (this *Transport) Listen(ch drs.ConnectionHandler) error {
+	ws := websocket.Server{
+		Handler: websocket.Handler(func(ws *websocket.Conn) {
+			ch(ws)
+		}),
+	}
 	http.HandleFunc("/socket", func(w http.ResponseWriter, req *http.Request) {
-		s := websocket.Server{
-			Handler: websocket.Handler(func(ws *websocket.Conn) {
-				ch(ws)
-			}),
-		}
-		s.ServeHTTP(w, req)
+		ws.ServeHTTP(w, req)
 	})
 	return http.ListenAndServe(":12000", nil)
 }
