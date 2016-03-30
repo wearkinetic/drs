@@ -38,6 +38,10 @@ func New(transport Transport) *Pipe {
 		mutex:     sync.Mutex{},
 	}
 	http.HandleFunc("/stats", func(w http.ResponseWriter, req *http.Request) {
+		functions := []string{}
+		for key, _ := range result.Processor.handlers {
+			functions = append(functions, key)
+		}
 		response(w, 200, map[string]interface{}{
 			"connections": map[string]interface{}{
 				"inbound":  len(result.inbound),
@@ -48,6 +52,7 @@ func New(transport Transport) *Pipe {
 				"exceptions": result.exceptions,
 				"errors":     result.errors,
 			},
+			"functions": functions,
 		})
 	})
 	return result
