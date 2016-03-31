@@ -1,6 +1,7 @@
 package drs
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"runtime/debug"
@@ -80,12 +81,8 @@ func (this *Processor) process(cmd *Command, conn *Connection) error {
 	}
 
 	// atomic.AddInt64(&this.total, 1)
-	handlers, ok := this.handlers[cmd.Action]
-	if ok {
-		result, err := this.trigger(cmd, conn, handlers...)
-		this.respond(cmd, conn, result, err)
-		return nil
-	}
+	result, err := this.Trigger(cmd, conn)
+	this.respond(cmd, conn, result, err)
 	return nil
 }
 
@@ -114,7 +111,7 @@ func (this *Processor) respond(cmd *Command, conn *Connection, result interface{
 	})
 }
 
-func (this *Processor) trigger(cmd *Command, conn *Connection, handlers ...CommandHandler) (result interface{}, err error) {
+func (this *Processor) Trigger(cmd *Command, conn *Connection) (result interface{}, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = r.(error)
@@ -122,6 +119,10 @@ func (this *Processor) trigger(cmd *Command, conn *Connection, handlers ...Comma
 			log.Println(string(debug.Stack()))
 		}
 	}()
+	handlers, ok := this.handlers[cmd.Action]
+	if !ok {
+		return nil, errors.New("No handlers for this action")
+	}
 	ctx := make(map[string]interface{})
 	for _, h := range handlers {
 		result, err = h(cmd, conn, ctx)

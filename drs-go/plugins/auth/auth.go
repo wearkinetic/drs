@@ -1,9 +1,13 @@
 package auth
 
 import "github.com/ironbay/drs/drs-go"
+import "log"
+import "golang.org/x/net/websocket"
+import "io"
+import "errors"
 
-func Attach(processor *drs.Processor, cb func(string) (string, error)) {
-	processor.On(
+func Attach(server *drs.Server, cb func(string) (string, error)) {
+	server.On(
 		"auth.upgrade",
 		func(cmd *drs.Command, conn *drs.Connection, ctx map[string]interface{}) (interface{}, error) {
 			token, ok := cmd.Body.(string)
@@ -18,13 +22,27 @@ func Attach(processor *drs.Processor, cb func(string) (string, error)) {
 			return user, nil
 		},
 	)
+
+	// LEGACY
+	server.OnConnect(func(conn *drs.Connection, raw io.ReadWriteCloser) error {
+		ws := raw.(*websocket.Conn)
+		query := ws.Request().URL.Query()
+		token := query.Get("token")
+		user, err := cb(token)
+		if err != nil {
+			return err
+		}
+		conn.Cache.Set("user", user)
+		log.Println("Legacy Client", user)
+		return nil
+	})
 }
 
 func Validator(cmd *drs.Command, conn *drs.Connection, ctx map[string]interface{}) (interface{}, error) {
 	user, ok := conn.Cache.Get("user")
-	if !ok {
-		return nil, drs.Error("Requires authentication")
+	if ok {
+		ctx["user"] = user
+		return nil, nil
 	}
-	ctx["user"] = user
-	return nil, nil
+	return nil, errors.New("Authentication required")
 }
