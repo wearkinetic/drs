@@ -115,9 +115,9 @@ func (this *Processor) respond(cmd *Command, conn *Connection, result interface{
 func (this *Processor) Trigger(cmd *Command, conn *Connection) (result interface{}, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = r.(error)
-			log.Println(err)
+			log.Println(r)
 			log.Println(string(debug.Stack()))
+			err = r.(error)
 		}
 	}()
 	handlers, ok := this.handlers[cmd.Action]
