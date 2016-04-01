@@ -8,7 +8,7 @@ import (
 
 func Attach(processor *drs.Processor) {
 	processor.On(
-		"ping",
+		"drs.ping",
 		func(cmd *drs.Command, conn *drs.Connection, ctx map[string]interface{}) (interface{}, error) {
 			return time.Now().UnixNano() / int64(time.Millisecond), nil
 		},

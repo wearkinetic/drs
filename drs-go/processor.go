@@ -99,6 +99,7 @@ func (this *Processor) respond(cmd *Command, conn *Connection, result interface{
 			response.Action = ERROR
 			atomic.AddInt64(&this.errors, 1)
 		} else {
+			log.Println(cmd.Action, err)
 			atomic.AddInt64(&this.exceptions, 1)
 		}
 		conn.Fire(response)
