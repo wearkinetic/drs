@@ -1,7 +1,6 @@
 package auth
 
 import "github.com/ironbay/drs/drs-go"
-import "log"
 import "golang.org/x/net/websocket"
 import "io"
 import "errors"
@@ -33,7 +32,6 @@ func Attach(server *drs.Server, cb func(string) (string, error)) {
 			return err
 		}
 		conn.Cache.Set("user", user)
-		log.Println("Legacy Client", user)
 		return nil
 	})
 }
