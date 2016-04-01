@@ -122,7 +122,10 @@ func (this *Processor) Trigger(cmd *Command, conn *Connection) (result interface
 	}()
 	handlers, ok := this.handlers[cmd.Action]
 	if !ok {
-		return nil, errors.New("No handlers for this action")
+		handlers, ok = this.handlers["*"]
+		if !ok {
+			return nil, errors.New("No handlers for this action")
+		}
 	}
 	ctx := make(map[string]interface{})
 	for _, h := range handlers {
