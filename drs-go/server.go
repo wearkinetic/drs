@@ -7,6 +7,7 @@ import (
 
 	"github.com/ironbay/delta/uuid"
 	"github.com/ironbay/drs/drs-go/protocol"
+	"github.com/streamrail/concurrent-map"
 )
 
 type Server struct {
@@ -14,7 +15,8 @@ type Server struct {
 	sync.Mutex
 	Protocol  protocol.Protocol
 	transport Transport
-	inbound   map[string]*Connection
+	inbound   cmap.ConcurrentMap
+	closed    bool
 
 	connect    []func(conn *Connection, raw io.ReadWriteCloser) error
 	disconnect []func(conn *Connection)
@@ -26,7 +28,7 @@ func NewServer(transport Transport) *Server {
 		Mutex:      sync.Mutex{},
 		transport:  transport,
 		Protocol:   protocol.JSON,
-		inbound:    map[string]*Connection{},
+		inbound:    cmap.New(),
 		connect:    make([]func(conn *Connection, raw io.ReadWriteCloser) error, 0),
 		disconnect: make([]func(conn *Connection), 0),
 	}
@@ -41,8 +43,8 @@ func (this *Server) OnDisconnect(cb func(*Connection)) {
 }
 
 func (this *Server) Broadcast(cmd *Command) int {
-	for _, value := range this.inbound {
-		value.Fire(cmd)
+	for kv := range this.inbound.Iter() {
+		kv.Val.(*Connection).Fire(cmd)
 	}
 	return len(this.inbound)
 }
@@ -50,18 +52,14 @@ func (this *Server) Broadcast(cmd *Command) int {
 func (this *Server) Listen(host string) error {
 	return this.transport.Listen(host, func(raw io.ReadWriteCloser) {
 		conn := NewConnection(this.Protocol)
-		id := uuid.Ascending()
-		this.Lock()
-		this.inbound[id] = conn
-		this.Unlock()
+		key := uuid.Ascending()
+		this.inbound.Set(key, conn)
 		defer func() {
 			conn.Close()
 			for _, cb := range this.disconnect {
 				cb(conn)
 			}
-			this.Lock()
-			delete(this.inbound, id)
-			this.Unlock()
+			this.inbound.Remove(key)
 		}()
 
 		for _, cb := range this.connect {
@@ -76,11 +74,12 @@ func (this *Server) Listen(host string) error {
 }
 
 func (this *Server) Close() {
-	for _, value := range this.inbound {
-		value.Close()
+	this.closed = true
+	for kv := range this.inbound.IterBuffered() {
+		kv.Val.(*Connection).Close()
 	}
 	for {
-		if len(this.inbound) == 0 {
+		if this.inbound.Count() == 0 {
 			break
 		}
 		time.Sleep(1 * time.Second)
