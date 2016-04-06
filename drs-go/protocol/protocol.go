@@ -16,31 +16,39 @@ type Decoder interface {
 }
 
 type Stream struct {
+	Raw io.ReadWriteCloser
 	Encoder
 	Decoder
 }
 
-type Protocol func(rw io.ReadWriteCloser) *Stream
+func (this *Stream) Close() {
+	this.Raw.Close()
+}
 
-var JSON = func(rw io.ReadWriteCloser) *Stream {
-	dc := json.NewDecoder(rw)
+type Protocol func(raw io.ReadWriteCloser) *Stream
+
+var JSON = func(raw io.ReadWriteCloser) *Stream {
+	dc := json.NewDecoder(raw)
 	dc.UseNumber()
 	return &Stream{
-		json.NewEncoder(rw),
+		raw,
+		json.NewEncoder(raw),
 		dc,
 	}
 }
 
-var GOB = func(rw io.ReadWriteCloser) *Stream {
+var GOB = func(raw io.ReadWriteCloser) *Stream {
 	return &Stream{
-		gob.NewEncoder(rw),
-		gob.NewDecoder(rw),
+		raw,
+		gob.NewEncoder(raw),
+		gob.NewDecoder(raw),
 	}
 }
 
-var XML = func(rw io.ReadWriteCloser) *Stream {
+var XML = func(raw io.ReadWriteCloser) *Stream {
 	return &Stream{
-		xml.NewEncoder(rw),
-		xml.NewDecoder(rw),
+		raw,
+		xml.NewEncoder(raw),
+		xml.NewDecoder(raw),
 	}
 }

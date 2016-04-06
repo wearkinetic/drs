@@ -13,12 +13,13 @@ import (
 
 type Connection struct {
 	*Processor
+	sync.RWMutex
 	Cache    cmap.ConcurrentMap
 	closed   bool
 	protocol protocol.Protocol
 	stream   *protocol.Stream
-	raw      io.ReadWriteCloser
-	sync.RWMutex
+
+	connect []func() error
 }
 
 func NewConnection(protocol protocol.Protocol) *Connection {
@@ -27,6 +28,7 @@ func NewConnection(protocol protocol.Protocol) *Connection {
 		Cache:     cmap.New(),
 		protocol:  protocol,
 		RWMutex:   sync.RWMutex{},
+		connect:   []func() error{},
 	}
 	return result
 }
@@ -34,7 +36,10 @@ func NewConnection(protocol protocol.Protocol) *Connection {
 func (this *Connection) Raw() io.ReadWriteCloser {
 	this.RLock()
 	defer this.RUnlock()
-	return this.raw
+	if this.stream == nil {
+		return nil
+	}
+	return this.stream.Raw
 }
 
 func (this *Connection) Closed() bool {
@@ -90,35 +95,12 @@ func (this *Connection) Fire(cmd *Command) error {
 	}
 }
 
-//
-// func (this *Connection) RLock() {
-// 	log.Println("Read Locking")
-// 	log.Println(string(debug.Stack()))
-// 	this.RWMutex.RLock()
-// }
-//
-// func (this *Connection) RUnlock() {
-// 	log.Println("Read Unlocking")
-// 	this.RWMutex.RUnlock()
-// }
-//
-// func (this *Connection) Lock() {
-// 	log.Println("Locking")
-// 	this.RWMutex.Lock()
-// }
-//
-// func (this *Connection) Unlock() {
-// 	log.Println("Unlocking")
-// 	this.RWMutex.Unlock()
-// }
-
 func (this *Connection) handle(raw io.ReadWriteCloser) error {
 	this.Lock()
 	if this.closed {
 		this.Unlock()
 		return errors.New("Connection has been closed")
 	}
-	this.raw = raw
 	this.stream = this.protocol(raw)
 	this.Unlock()
 	// TODO: Considering using channels properly
@@ -127,10 +109,10 @@ func (this *Connection) handle(raw io.ReadWriteCloser) error {
 	for {
 		cmd := new(Command)
 		err = this.stream.Decode(cmd)
-		buffer <- true
 		if err != nil {
 			break
 		}
+		buffer <- true
 		go func() {
 			this.process(cmd, this)
 			<-buffer
@@ -142,8 +124,8 @@ func (this *Connection) handle(raw io.ReadWriteCloser) error {
 func (this *Connection) Close() {
 	this.Lock()
 	this.closed = true
-	if this.raw != nil {
-		this.raw.Close()
+	if this.stream != nil {
+		this.stream.Close()
 	}
 	this.clear()
 	this.Unlock()

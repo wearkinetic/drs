@@ -44,7 +44,7 @@ func New(transport Transport) *Pipe {
 		}
 		response(w, 200, map[string]interface{}{
 			"connections": map[string]interface{}{
-				"inbound":  len(result.inbound),
+				"inbound":  result.inbound.Count(),
 				"outbound": result.outbound.Count(),
 			},
 			"commands": map[string]interface{}{

@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/ironbay/drs/drs-go"
 	"golang.org/x/net/websocket"
 )
 
@@ -17,7 +16,7 @@ func (this *Transport) On(action string) error {
 	return nil
 }
 
-func (this *Transport) Listen(ch drs.ConnectionHandler) error {
+func (this *Transport) Listen(ch func(raw io.ReadWriteCloser)) error {
 	ws := websocket.Server{
 		Handler: websocket.Handler(func(ws *websocket.Conn) {
 			ch(ws)
