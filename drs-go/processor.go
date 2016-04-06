@@ -1,7 +1,6 @@
 package drs
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"runtime/debug"
@@ -124,7 +123,7 @@ func (this *Processor) Trigger(cmd *Command, conn *Connection) (result interface
 	if !ok {
 		handlers, ok = this.handlers["*"]
 		if !ok {
-			return nil, errors.New("No handlers for this action")
+			return nil, Error("No handlers for this action")
 		}
 	}
 	ctx := make(map[string]interface{})

@@ -17,7 +17,7 @@ func (this *Transport) On(action string) error {
 	return nil
 }
 
-func (this *Transport) Listen(ch drs.ConnectionHandler) error {
+func (this *Transport) Listen(host string, ch drs.ConnectionHandler) error {
 	ws := websocket.Server{
 		Handler: websocket.Handler(func(ws *websocket.Conn) {
 			ch(ws)
@@ -26,7 +26,7 @@ func (this *Transport) Listen(ch drs.ConnectionHandler) error {
 	http.HandleFunc("/socket", func(w http.ResponseWriter, req *http.Request) {
 		ws.ServeHTTP(w, req)
 	})
-	return http.ListenAndServe(":12000", nil)
+	return http.ListenAndServe(host, nil)
 }
 
 func (this *Transport) Connect(host string) (io.ReadWriteCloser, error) {

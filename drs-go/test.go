@@ -18,7 +18,7 @@ func Test(t *testing.T, transport Transport) {
 		log.Println("Got Request", cmd.Body)
 		return cmd.Body, nil
 	})
-	go pipe.Listen()
+	go pipe.Listen(":12000")
 	log.Println("Sending...")
 	result, err := pipe.Request(&Command{
 		Action: "echo",

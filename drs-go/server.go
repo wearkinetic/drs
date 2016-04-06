@@ -47,8 +47,8 @@ func (this *Server) Broadcast(cmd *Command) int {
 	return len(this.inbound)
 }
 
-func (this *Server) Listen() error {
-	return this.transport.Listen(func(raw io.ReadWriteCloser) {
+func (this *Server) Listen(host string) error {
+	return this.transport.Listen(host, func(raw io.ReadWriteCloser) {
 		conn := NewConnection(this.Protocol)
 		id := uuid.Ascending()
 		this.Lock()

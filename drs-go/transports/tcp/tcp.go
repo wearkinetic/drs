@@ -1,7 +1,6 @@
 package tcp
 
 import (
-	"fmt"
 	"io"
 	"net"
 
@@ -15,8 +14,8 @@ func (this *Transport) On(action string) error {
 	return nil
 }
 
-func (this *Transport) Listen(ch drs.ConnectionHandler) error {
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%v", 12000))
+func (this *Transport) Listen(host string, ch drs.ConnectionHandler) error {
+	ln, err := net.Listen("tcp", host)
 	if err != nil {
 		return err
 	}

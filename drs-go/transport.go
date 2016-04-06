@@ -3,7 +3,7 @@ package drs
 import "io"
 
 type Transport interface {
-	Listen(ch ConnectionHandler) error
+	Listen(host string, ch ConnectionHandler) error
 	Connect(host string) (io.ReadWriteCloser, error)
 }
 
