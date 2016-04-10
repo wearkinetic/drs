@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"runtime/debug"
-	"sync/atomic"
 
 	"github.com/ironbay/delta/uuid"
 	"github.com/ironbay/dynamic"
@@ -20,7 +19,6 @@ type Message struct {
 type Processor struct {
 	handlers   map[string][]func(*Message) (interface{}, error)
 	pending    cmap.ConcurrentMap
-	Redirect   *Processor
 	errors     int64
 	exceptions int64
 	total      int64
@@ -46,15 +44,12 @@ func (this *Processor) On(action string, handlers ...func(*Message) (interface{}
 	return nil
 }
 
-func (this *Processor) wait(cmd *Command, cb func() error) (interface{}, error) {
+func (this *Processor) wait(cmd *Command, cb func()) (interface{}, error) {
 	if cmd.Key == "" {
 		cmd.Key = uuid.Ascending()
 	}
 	wait := make(chan *Command, 1)
-	err := cb()
-	if err != nil {
-		return nil, err
-	}
+	cb()
 	this.pending.Set(cmd.Key, wait)
 	response := <-wait
 	if response.Action == ERROR {
@@ -70,53 +65,21 @@ func (this *Processor) wait(cmd *Command, cb func() error) (interface{}, error) 
 	return response.Body, nil
 }
 
-func (this *Processor) process(cmd *Command, conn *Connection) error {
+func (this *Processor) Process(cmd *Command, conn *Connection) (interface{}, error) {
 	if cmd.Action == RESPONSE || cmd.Action == ERROR || cmd.Action == EXCEPTION {
 		waiting, ok := this.pending.Get(cmd.Key)
 		if ok {
 			waiting.(chan *Command) <- cmd
 			this.pending.Remove(cmd.Key)
 		}
-		return nil
-	}
-
-	if this.Redirect != nil {
-		return this.Redirect.process(cmd, conn)
+		return nil, nil
 	}
 
 	// atomic.AddInt64(&this.total, 1)
-	result, err := this.Trigger(cmd, conn)
-	this.respond(cmd, conn, result, err)
-	return nil
+	return this.trigger(cmd, conn)
 }
 
-func (this *Processor) respond(cmd *Command, conn *Connection, result interface{}, err error) {
-	if err != nil {
-		log.Println(cmd.Action, err)
-		response := &Command{
-			Key:    cmd.Key,
-			Action: EXCEPTION,
-			Body: map[string]interface{}{
-				"message": err.Error(),
-			},
-		}
-		if _, ok := err.(*DRSError); ok {
-			response.Action = ERROR
-			atomic.AddInt64(&this.errors, 1)
-		} else {
-			atomic.AddInt64(&this.exceptions, 1)
-		}
-		conn.Fire(response)
-		return
-	}
-	conn.Fire(&Command{
-		Key:    cmd.Key,
-		Action: RESPONSE,
-		Body:   result,
-	})
-}
-
-func (this *Processor) Trigger(cmd *Command, conn *Connection) (result interface{}, err error) {
+func (this *Processor) trigger(cmd *Command, conn *Connection) (result interface{}, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Println(r)

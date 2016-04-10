@@ -1,30 +1,36 @@
 package drs
 
 import (
+	"log"
 	"testing"
 	"time"
 
 	"github.com/ironbay/drs/drs-go/protocol"
 	"github.com/ironbay/drs/drs-go/transports/ws"
 	"github.com/ironbay/dynamic"
+	"github.com/ironbay/go-util/console"
 )
 
 func TestConn(t *testing.T) {
-	conn := NewConnection2()
+	conn := NewConnection()
 	transport := ws.New(dynamic.Empty())
-	go conn.Dial(protocol.JSON, transport, "localhost:12000")
-	/*
-		count := 0
-			for {
-				conn.Fire(&Command{
-					Action: "drs.ping",
-				})
-				count++
-				if count > 5 {
-					break
-				}
-			}
-	*/
-	time.Sleep(5 * time.Second)
+	go conn.Dial(protocol.JSON, transport, "delta.wearkinetic.com", true)
+	count := 0
+	for {
+		go func() {
+			now := time.Now()
+			result, _ := conn.Request(&Command{
+				Action: "drs.ping",
+				Body:   count,
+			})
+			log.Println(time.Since(now).Seconds() * 1000)
+			console.JSON(result)
+		}()
+		count++
+		if count > 1000 {
+			break
+		}
+	}
+	time.Sleep(1 * time.Minute)
 	conn.Close()
 }

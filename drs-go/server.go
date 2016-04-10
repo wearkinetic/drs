@@ -51,7 +51,7 @@ func (this *Server) Broadcast(cmd *Command) int {
 
 func (this *Server) Listen(host string) error {
 	return this.transport.Listen(host, func(raw io.ReadWriteCloser) {
-		conn := NewConnection(this.Protocol)
+		conn := NewConnection()
 		key := uuid.Ascending()
 		this.inbound.Set(key, conn)
 		defer func() {
@@ -68,8 +68,8 @@ func (this *Server) Listen(host string) error {
 				return
 			}
 		}
-		conn.Redirect = this.Processor
-		conn.handle(raw)
+		conn.Processor = this.Processor
+		conn.handle(this.Protocol(raw))
 	})
 }
 
