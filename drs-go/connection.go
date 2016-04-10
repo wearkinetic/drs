@@ -1,80 +1,97 @@
 package drs
 
 import (
-	"errors"
-	"io"
-	"sync"
+	"log"
+	"sync/atomic"
 	"time"
 
-	"github.com/ironbay/delta/uuid"
 	"github.com/ironbay/drs/drs-go/protocol"
+	"github.com/ironbay/go-util/console"
 	"github.com/streamrail/concurrent-map"
 )
 
 type Connection struct {
 	*Processor
-	sync.RWMutex
-	Cache    cmap.ConcurrentMap
-	closed   bool
-	protocol protocol.Protocol
-	stream   *protocol.Stream
-
-	connect   []func() error
+	Cache     cmap.ConcurrentMap
+	outgoing  chan *Command
+	close     chan bool
 	bootstrap []*Command
 }
 
-func NewConnection(protocol protocol.Protocol) *Connection {
+func NewConnection() *Connection {
 	result := &Connection{
 		Processor: newProcessor(),
 		Cache:     cmap.New(),
-		protocol:  protocol,
-		RWMutex:   sync.RWMutex{},
-		connect:   []func() error{},
+		outgoing:  make(chan *Command, 500),
+		close:     make(chan bool),
 		bootstrap: []*Command{},
 	}
 	return result
 }
 
-func (this *Connection) Raw() io.ReadWriteCloser {
-	this.RLock()
-	defer this.RUnlock()
-	if this.stream == nil {
-		return nil
-	}
-	return this.stream.Raw
-}
-
-func (this *Connection) Closed() bool {
-	this.RLock()
-	defer this.RUnlock()
-	return this.closed
-}
-
-func (this *Connection) Open() bool {
-	this.RLock()
-	defer this.RUnlock()
-	return this.stream != nil
-}
-
-func (this *Connection) Dial(transport Transport, host string, reconnect bool) {
+func (this *Connection) Dial(proto protocol.Protocol, transport Transport, host string, reconnect bool) {
 	for {
 		raw, err := transport.Connect(host)
-		if err != nil {
-			time.Sleep(1 * time.Second)
-			continue
+		if err == nil {
+			if this.handle(proto(raw)) {
+				break
+			}
 		}
-		err = this.handle(raw)
-		if this.closed || !reconnect {
-			return
+		if !reconnect {
+			break
 		}
 		time.Sleep(1 * time.Second)
 	}
+	log.Println("Closing")
+	close(this.outgoing)
 }
 
-func (this *Connection) Request(cmd *Command) (interface{}, error) {
-	return this.wait(cmd, func() error {
-		return this.Fire(cmd)
-	})
+func (this *Connection) handle(stream *protocol.Stream) bool {
+	defer stream.Close()
+	incoming := make(chan *Command)
+
+	go func() {
+		for {
+			cmd := new(Command)
+			if err := stream.Decode(cmd); err != nil {
+				log.Println(err)
+				break
+			}
+			incoming <- cmd
+		}
+		close(incoming)
+	}()
+
+	for _, cmd := range this.bootstrap {
+		if err := stream.Encode(cmd); err != nil {
+			return false
+		}
+	}
+
+	for {
+		select {
+
+		case cmd := <-incoming:
+			if cmd == nil {
+				return false
+			}
+			res, err := this.Process(cmd, this)
+			this.respond(cmd.Key, res, err)
+
+		case cmd := <-this.outgoing:
+			if err := stream.Encode(cmd); err != nil {
+				go this.Fire(cmd)
+			}
+			console.JSON(cmd)
+
+		case <-this.close:
+			return true
+		}
+	}
+}
+
+func (this *Connection) Fire(cmd *Command) {
+	this.outgoing <- cmd
 }
 
 func (this *Connection) Bootstrap(cmd *Command) (interface{}, error) {
@@ -82,63 +99,37 @@ func (this *Connection) Bootstrap(cmd *Command) (interface{}, error) {
 	return this.Request(cmd)
 }
 
-func (this *Connection) Fire(cmd *Command) error {
-	if cmd.Key == "" {
-		cmd.Key = uuid.Ascending()
-	}
-	for {
-		if this.Closed() {
-			return errors.New("Connection has been closed")
-		}
-		if this.Open() {
-			this.RLock()
-			err := this.stream.Encode(cmd)
-			this.RUnlock()
-			if err == nil {
-				return nil
-			}
-		}
-		time.Sleep(1 * time.Second)
-	}
+func (this *Connection) Request(cmd *Command) (interface{}, error) {
+	return this.wait(cmd, func() {
+		this.Fire(cmd)
+	})
 }
 
-func (this *Connection) handle(raw io.ReadWriteCloser) error {
-	this.Lock()
-	if this.closed {
-		this.Unlock()
-		return errors.New("Connection has been closed")
-	}
-	this.stream = this.protocol(raw)
-	this.Unlock()
-	for _, cmd := range this.bootstrap {
-		if _, err := this.Request(cmd); err != nil {
-			return err
+func (this *Connection) respond(key string, res interface{}, err error) {
+	if err != nil {
+		response := &Command{
+			Key:    key,
+			Action: EXCEPTION,
+			Body: map[string]interface{}{
+				"message": err.Error(),
+			},
 		}
-	}
-	// TODO: Considering using channels properly
-	var err error
-	buffer := make(chan bool, 500)
-	for {
-		cmd := new(Command)
-		err = this.stream.Decode(cmd)
-		if err != nil {
-			break
+		if _, ok := err.(*DRSError); ok {
+			response.Action = ERROR
+			atomic.AddInt64(&this.errors, 1)
+		} else {
+			atomic.AddInt64(&this.exceptions, 1)
 		}
-		buffer <- true
-		go func() {
-			this.process(cmd, this)
-			<-buffer
-		}()
+		this.Fire(response)
+		return
 	}
-	return err
+	this.Fire(&Command{
+		Key:    key,
+		Action: RESPONSE,
+		Body:   res,
+	})
 }
 
 func (this *Connection) Close() {
-	this.Lock()
-	this.closed = true
-	if this.stream != nil {
-		this.stream.Close()
-	}
-	this.clear()
-	this.Unlock()
+	this.close <- true
 }

@@ -31,8 +31,8 @@ func Test(t *testing.T, transport Transport) {
 }
 
 func TestConnection(t *testing.T, transport Transport) {
-	conn := NewConnection(protocol.JSON)
-	conn.Dial(transport, "localhost:12000", false)
+	conn := NewConnection()
+	conn.Dial(protocol.JSON, transport, "localhost:12000", false)
 	time.Sleep(1 * time.Minute)
 	conn.Close()
 }

@@ -103,10 +103,10 @@ func (this *Pipe) route(action string) (*Connection, error) {
 		if ok {
 			return match.(*Connection), nil
 		}
-		conn := NewConnection(this.Protocol)
-		conn.Redirect = this.Processor
+		conn := NewConnection()
+		conn.Processor = this.Processor
 		go func() {
-			conn.Dial(this.transport, host, false)
+			conn.Dial(this.Protocol, this.transport, host, false)
 			this.outbound.Remove(host)
 		}()
 		this.outbound.Set(host, conn)
