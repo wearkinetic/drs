@@ -14,7 +14,7 @@ import (
 func TestConn(t *testing.T) {
 	conn := NewConnection()
 	transport := ws.New(dynamic.Empty())
-	go conn.Dial(protocol.JSON, transport, "delta.wearkinetic.com", true)
+	go conn.Dial(protocol.JSON, transport, "localhost:12000", true)
 	count := 0
 	for {
 		go func() {

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ironbay/drs/drs-go/protocol"
-	"github.com/ironbay/go-util/console"
 	"github.com/streamrail/concurrent-map"
 )
 
@@ -82,7 +81,6 @@ func (this *Connection) handle(stream *protocol.Stream) bool {
 			if err := stream.Encode(cmd); err != nil {
 				go this.Fire(cmd)
 			}
-			console.JSON(cmd)
 
 		case <-this.close:
 			return true
