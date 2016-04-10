@@ -30,6 +30,7 @@ func NewConnection(protocol protocol.Protocol) *Connection {
 		protocol:  protocol,
 		RWMutex:   sync.RWMutex{},
 		connect:   []func() error{},
+		bootstrap: []*Command{},
 	}
 	return result
 }
