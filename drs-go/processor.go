@@ -7,13 +7,18 @@ import (
 	"sync/atomic"
 
 	"github.com/ironbay/delta/uuid"
+	"github.com/ironbay/dynamic"
 	"github.com/streamrail/concurrent-map"
 )
 
-type CommandHandler func(cmd *Command, conn *Connection, ctx map[string]interface{}) (interface{}, error)
+type Message struct {
+	Command    *Command
+	Connection *Connection
+	Context    map[string]interface{}
+}
 
 type Processor struct {
-	handlers   map[string][]CommandHandler
+	handlers   map[string][]func(*Message) (interface{}, error)
 	pending    cmap.ConcurrentMap
 	Redirect   *Processor
 	errors     int64
@@ -23,7 +28,7 @@ type Processor struct {
 
 func newProcessor() *Processor {
 	return &Processor{
-		handlers:   map[string][]CommandHandler{},
+		handlers:   map[string][]func(*Message) (interface{}, error){},
 		pending:    cmap.New(),
 		total:      0,
 		exceptions: 0,
@@ -31,7 +36,7 @@ func newProcessor() *Processor {
 	}
 }
 
-func (this *Processor) On(action string, handlers ...CommandHandler) error {
+func (this *Processor) On(action string, handlers ...func(*Message) (interface{}, error)) error {
 	exists, ok := this.handlers[action]
 	if ok {
 		exists = append(exists, handlers...)
@@ -126,9 +131,13 @@ func (this *Processor) Trigger(cmd *Command, conn *Connection) (result interface
 			return nil, Error("No handlers for this action")
 		}
 	}
-	ctx := make(map[string]interface{})
+	msg := &Message{
+		Context:    dynamic.Empty(),
+		Command:    cmd,
+		Connection: conn,
+	}
 	for _, h := range handlers {
-		result, err = h(cmd, conn, ctx)
+		result, err = h(msg)
 		if err != nil {
 			return nil, err
 		}

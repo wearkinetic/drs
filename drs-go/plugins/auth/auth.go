@@ -9,8 +9,8 @@ import "errors"
 func Attach(server *drs.Server, cb func(string) (string, error)) {
 	server.On(
 		"auth.upgrade",
-		func(cmd *drs.Command, conn *drs.Connection, ctx map[string]interface{}) (interface{}, error) {
-			token, ok := cmd.Body.(string)
+		func(msg *drs.Message) (interface{}, error) {
+			token, ok := msg.Command.Body.(string)
 			if !ok {
 				return nil, drs.Error("Token must be a string")
 			}
@@ -18,7 +18,7 @@ func Attach(server *drs.Server, cb func(string) (string, error)) {
 			if err != nil {
 				return nil, drs.Error(err.Error())
 			}
-			conn.Cache.Set("user", user)
+			msg.Connection.Cache.Set("user", user)
 			return user, nil
 		},
 	)
@@ -38,10 +38,10 @@ func Attach(server *drs.Server, cb func(string) (string, error)) {
 	})
 }
 
-func Validator(cmd *drs.Command, conn *drs.Connection, ctx map[string]interface{}) (interface{}, error) {
-	user, ok := conn.Cache.Get("user")
+func Validator(msg *drs.Message) (interface{}, error) {
+	user, ok := msg.Connection.Cache.Get("user")
 	if ok {
-		ctx["user"] = user
+		msg.Context["user"] = user
 		return nil, nil
 	}
 	return nil, errors.New("Authentication required")
