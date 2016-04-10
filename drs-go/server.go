@@ -52,7 +52,16 @@ func (this *Server) Broadcast(cmd *Command) int {
 func (this *Server) Listen(host string) error {
 	return this.transport.Listen(host, func(raw io.ReadWriteCloser) {
 		conn := NewConnection()
+		conn.Processor = this.Processor
 		key := uuid.Ascending()
+
+		for _, cb := range this.connect {
+			err := cb(conn, raw)
+			if err != nil {
+				raw.Close()
+				return
+			}
+		}
 		this.inbound.Set(key, conn)
 		defer func() {
 			conn.Close()
@@ -61,14 +70,6 @@ func (this *Server) Listen(host string) error {
 			}
 			this.inbound.Remove(key)
 		}()
-
-		for _, cb := range this.connect {
-			err := cb(conn, raw)
-			if err != nil {
-				return
-			}
-		}
-		conn.Processor = this.Processor
 		conn.handle(this.Protocol(raw))
 	})
 }

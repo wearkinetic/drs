@@ -49,8 +49,8 @@ func (this *Processor) wait(cmd *Command, cb func()) (interface{}, error) {
 		cmd.Key = uuid.Ascending()
 	}
 	wait := make(chan *Command, 1)
-	cb()
 	this.pending.Set(cmd.Key, wait)
+	cb()
 	response := <-wait
 	if response.Action == ERROR {
 		return nil, &DRSError{

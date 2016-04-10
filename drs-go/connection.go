@@ -41,7 +41,6 @@ func (this *Connection) Dial(proto protocol.Protocol, transport Transport, host 
 		}
 		time.Sleep(1 * time.Second)
 	}
-	log.Println("Closing")
 	close(this.outgoing)
 }
 
@@ -98,9 +97,18 @@ func (this *Connection) Bootstrap(cmd *Command) (interface{}, error) {
 }
 
 func (this *Connection) Request(cmd *Command) (interface{}, error) {
-	return this.wait(cmd, func() {
-		this.Fire(cmd)
-	})
+	for {
+		res, err := this.wait(cmd, func() {
+			this.Fire(cmd)
+		})
+		if err != nil {
+			return res, nil
+		}
+		if _, ok := err.(*DRSException); ok {
+			continue
+		}
+		return nil, err
+	}
 }
 
 func (this *Connection) respond(key string, res interface{}, err error) {
