@@ -19,7 +19,8 @@ type Connection struct {
 	protocol protocol.Protocol
 	stream   *protocol.Stream
 
-	connect []func() error
+	connect   []func() error
+	bootstrap []*Command
 }
 
 func NewConnection(protocol protocol.Protocol) *Connection {
@@ -75,6 +76,11 @@ func (this *Connection) Request(cmd *Command) (interface{}, error) {
 	})
 }
 
+func (this *Connection) Bootstrap(cmd *Command) (interface{}, error) {
+	this.bootstrap = append(this.bootstrap, cmd)
+	return this.Request(cmd)
+}
+
 func (this *Connection) Fire(cmd *Command) error {
 	if cmd.Key == "" {
 		cmd.Key = uuid.Ascending()
@@ -103,6 +109,11 @@ func (this *Connection) handle(raw io.ReadWriteCloser) error {
 	}
 	this.stream = this.protocol(raw)
 	this.Unlock()
+	for _, cmd := range this.bootstrap {
+		if _, err := this.Request(cmd); err != nil {
+			return err
+		}
+	}
 	// TODO: Considering using channels properly
 	var err error
 	buffer := make(chan bool, 500)
