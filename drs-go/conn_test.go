@@ -13,7 +13,7 @@ import (
 
 func TestConn(t *testing.T) {
 	conn := NewConnection()
-	transport := ws.New(dynamic.Empty())
+	transport := ws.New(dynamic.Build("token", "djkhaled"))
 	go conn.Dial(protocol.JSON, transport, "localhost:12000", true)
 	count := 0
 	for {
@@ -31,6 +31,7 @@ func TestConn(t *testing.T) {
 			break
 		}
 	}
+	log.Println("Sleeping")
 	time.Sleep(1 * time.Minute)
 	conn.Close()
 }
