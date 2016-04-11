@@ -1,9 +1,7 @@
 package drs
 
 import (
-	"log"
 	"sync/atomic"
-	"time"
 
 	"github.com/ironbay/drs/drs-go/protocol"
 	"github.com/ironbay/go-util/console"
@@ -12,105 +10,63 @@ import (
 
 type Connection struct {
 	*Processor
-	Cache     cmap.ConcurrentMap
-	outgoing  chan *Command
-	close     chan bool
-	bootstrap []*Command
+	stream *protocol.Stream
+	Cache  cmap.ConcurrentMap
+	Done   chan error
 }
 
 func NewConnection() *Connection {
 	result := &Connection{
 		Processor: newProcessor(),
 		Cache:     cmap.New(),
-		outgoing:  make(chan *Command, 500),
-		close:     make(chan bool),
-		bootstrap: []*Command{},
+		Done:      make(chan error, 1),
 	}
 	return result
 }
 
-func (this *Connection) Dial(proto protocol.Protocol, transport Transport, host string, reconnect bool) {
+func (this *Connection) Dial(proto protocol.Protocol, transport Transport, host string) error {
+	raw, err := transport.Connect(host)
+	if err != nil {
+		return err
+	}
+	this.stream = proto(raw)
+	go this.handle()
+	return nil
+}
+
+func (this *Connection) handle() {
+	defer this.stream.Close()
+	defer this.clear()
 	for {
-		raw, err := transport.Connect(host)
-		if err == nil {
-			if this.handle(proto(raw)) {
-				break
-			}
+		cmd := new(Command)
+		if err := this.stream.Decode(cmd); err != nil {
+			this.Done <- err
+			return
 		}
-		if !reconnect {
-			break
-		}
-		time.Sleep(1 * time.Second)
-	}
-	close(this.outgoing)
-}
-
-func (this *Connection) handle(stream *protocol.Stream) bool {
-	defer stream.Close()
-	incoming := make(chan *Command)
-
-	go func() {
-		for {
-			cmd := new(Command)
-			if err := stream.Decode(cmd); err != nil {
-				log.Println(err)
-				break
-			}
-			console.JSON(cmd)
-			incoming <- cmd
-		}
-		close(incoming)
-	}()
-
-	for _, cmd := range this.bootstrap {
-		if err := stream.Encode(cmd); err != nil {
-			return false
-		}
-	}
-
-	for {
-		select {
-
-		case cmd := <-incoming:
-			if cmd == nil {
-				return false
-			}
-			res, err := this.Process(cmd, this)
-			go this.respond(cmd.Key, res, err)
-
-		case cmd := <-this.outgoing:
-			if err := stream.Encode(cmd); err != nil {
-				go this.Fire(cmd)
-			}
-
-		case <-this.close:
-			return true
+		console.JSON(cmd)
+		result, err := this.Process(cmd, this)
+		if result != nil {
+			this.respond(cmd.Key, result, err)
 		}
 	}
 }
 
-func (this *Connection) Fire(cmd *Command) {
-	this.outgoing <- cmd
-}
-
-func (this *Connection) Bootstrap(cmd *Command) (interface{}, error) {
-	this.bootstrap = append(this.bootstrap, cmd)
-	return this.Request(cmd)
+func (this *Connection) Fire(cmd *Command) error {
+	return this.stream.Encode(cmd)
 }
 
 func (this *Connection) Request(cmd *Command) (interface{}, error) {
 	for {
-		res, err := this.wait(cmd, func() {
-			this.Fire(cmd)
+		res, err := this.wait(cmd, func() error {
+			return this.Fire(cmd)
 		})
-		log.Println(res, err)
 		if err != nil {
-			return res, nil
+			return nil, err
 		}
 		if _, ok := err.(*DRSException); ok {
 			continue
 		}
-		return nil, err
+		return res, nil
 	}
 }
 
@@ -140,5 +96,8 @@ func (this *Connection) respond(key string, res interface{}, err error) {
 }
 
 func (this *Connection) Close() {
-	this.close <- true
+	if this.stream == nil {
+		return
+	}
+	this.stream.Close()
 }

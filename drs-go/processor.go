@@ -1,12 +1,14 @@
 package drs
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"runtime/debug"
 
 	"github.com/ironbay/delta/uuid"
 	"github.com/ironbay/dynamic"
+	"github.com/ironbay/go-util/actor"
 	"github.com/streamrail/concurrent-map"
 )
 
@@ -44,23 +46,21 @@ func (this *Processor) On(action string, handlers ...func(*Message) (interface{}
 	return nil
 }
 
-func (this *Processor) wait(cmd *Command, cb func()) (interface{}, error) {
+func (this *Processor) wait(cmd *Command, cb func() error) (interface{}, error) {
 	if cmd.Key == "" {
 		cmd.Key = uuid.Ascending()
 	}
 	wait := make(chan *Command, 1)
 	this.pending.Set(cmd.Key, wait)
-	cb()
+	if err := cb(); err != nil {
+		return nil, err
+	}
 	response := <-wait
 	if response.Action == ERROR {
-		return nil, &DRSError{
-			Message: fmt.Sprint(response.Body),
-		}
+		return nil, actor.Error(fmt.Sprint(response.Body))
 	}
 	if response.Action == EXCEPTION {
-		return nil, &DRSException{
-			Message: fmt.Sprint(response.Body),
-		}
+		return nil, errors.New(fmt.Sprint(response.Body))
 	}
 	return response.Body, nil
 }

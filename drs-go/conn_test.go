@@ -8,30 +8,29 @@ import (
 	"github.com/ironbay/drs/drs-go/protocol"
 	"github.com/ironbay/drs/drs-go/transports/ws"
 	"github.com/ironbay/dynamic"
-	"github.com/ironbay/go-util/console"
+	"github.com/ironbay/go-util/actor"
 )
 
 func TestConn(t *testing.T) {
-	conn := NewConnection()
-	transport := ws.New(dynamic.Build("token", "djkhaled"))
-	go conn.Dial(protocol.JSON, transport, "localhost:12000", true)
-	count := 0
-	for {
-		go func() {
-			now := time.Now()
-			result, _ := conn.Request(&Command{
-				Action: "drs.ping",
-				Body:   count,
-			})
-			log.Println(time.Since(now).Seconds() * 1000)
-			console.JSON(result)
-		}()
-		count++
-		if count > 1000 {
-			break
+	actor.Supervise(func() error {
+		transport := ws.New(dynamic.Build("token", "djkhaled"))
+		conn := NewConnection()
+		if err := conn.Dial(protocol.JSON, transport, "localhost:12000"); err != nil {
+			time.Sleep(1 * time.Second)
+			return err
 		}
-	}
-	log.Println("Sleeping")
-	time.Sleep(1 * time.Minute)
-	conn.Close()
+		defer conn.Close()
+
+		for i := 0; i < 3; i++ {
+			res, err := conn.Request(&Command{
+				Action: "drs.ping",
+			})
+			if err != nil {
+				return err
+			}
+			log.Println(res)
+			time.Sleep(1 * time.Second)
+		}
+		return <-conn.Done
+	})
 }
