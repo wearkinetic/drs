@@ -6,7 +6,6 @@ import (
 
 	"github.com/ironbay/drs/drs-go/protocol"
 	"github.com/ironbay/go-util/actor"
-	"github.com/ironbay/go-util/console"
 	"github.com/streamrail/concurrent-map"
 )
 
@@ -56,7 +55,6 @@ func (this *Connection) handle() {
 			}
 			return
 		}
-		console.JSON(cmd)
 		go func() {
 			result, err := this.Process(cmd, this)
 			if result != nil {
