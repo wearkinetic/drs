@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log"
 	"runtime/debug"
-	"time"
 
 	"github.com/ironbay/delta/uuid"
+	"github.com/ironbay/drs/drs-go/plugins/ping"
 	"github.com/ironbay/dynamic"
 	"github.com/ironbay/go-util/actor"
 	"github.com/streamrail/concurrent-map"
@@ -35,9 +35,7 @@ func newProcessor() *Processor {
 		exceptions: 0,
 		errors:     0,
 	}
-	result.On("drs.ping", func(msg *Message) (interface{}, error) {
-		return time.Now().UnixNano() / int64(time.Millisecond), nil
-	})
+	ping.Attach(result)
 	return result
 }
 
