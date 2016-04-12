@@ -4,6 +4,7 @@ import (
 	"sync/atomic"
 
 	"github.com/ironbay/drs/drs-go/protocol"
+	"github.com/ironbay/go-util/actor"
 	"github.com/ironbay/go-util/console"
 	"github.com/streamrail/concurrent-map"
 )
@@ -12,14 +13,14 @@ type Connection struct {
 	*Processor
 	stream *protocol.Stream
 	Cache  cmap.ConcurrentMap
-	Done   chan error
+
+	OnDisconnect func(err error)
 }
 
 func NewConnection() *Connection {
 	result := &Connection{
 		Processor: newProcessor(),
 		Cache:     cmap.New(),
-		Done:      make(chan error, 1),
 	}
 	return result
 }
@@ -40,7 +41,9 @@ func (this *Connection) handle() {
 	for {
 		cmd := new(Command)
 		if err := this.stream.Decode(cmd); err != nil {
-			this.Done <- err
+			if this.OnDisconnect != nil {
+				this.OnDisconnect(err)
+			}
 			return
 		}
 		console.JSON(cmd)
@@ -56,18 +59,9 @@ func (this *Connection) Fire(cmd *Command) error {
 }
 
 func (this *Connection) Request(cmd *Command) (interface{}, error) {
-	for {
-		res, err := this.wait(cmd, func() error {
-			return this.Fire(cmd)
-		})
-		if err != nil {
-			return nil, err
-		}
-		if _, ok := err.(*DRSException); ok {
-			continue
-		}
-		return res, nil
-	}
+	return this.wait(cmd, func() error {
+		return this.Fire(cmd)
+	})
 }
 
 func (this *Connection) respond(key string, res interface{}, err error) {
@@ -79,7 +73,7 @@ func (this *Connection) respond(key string, res interface{}, err error) {
 				"message": err.Error(),
 			},
 		}
-		if _, ok := err.(*DRSError); ok {
+		if _, ok := err.(*actor.ActorError); ok {
 			response.Action = ERROR
 			atomic.AddInt64(&this.errors, 1)
 		} else {

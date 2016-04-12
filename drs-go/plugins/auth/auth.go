@@ -1,6 +1,9 @@
 package auth
 
-import "github.com/ironbay/drs/drs-go"
+import (
+	"github.com/ironbay/drs/drs-go"
+	"github.com/ironbay/go-util/actor"
+)
 import "log"
 import "golang.org/x/net/websocket"
 import "io"
@@ -12,11 +15,11 @@ func Attach(server *drs.Server, cb func(string) (string, error)) {
 		func(msg *drs.Message) (interface{}, error) {
 			token, ok := msg.Command.Body.(string)
 			if !ok {
-				return nil, drs.Error("Token must be a string")
+				return nil, actor.Error("Token must be a string")
 			}
 			user, err := cb(token)
 			if err != nil {
-				return nil, drs.Error(err.Error())
+				return nil, actor.Error(err.Error())
 			}
 			msg.Connection.Cache.Set("user", user)
 			return user, nil

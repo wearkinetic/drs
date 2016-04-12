@@ -59,24 +59,13 @@ func New(transport Transport) *Pipe {
 }
 
 func (this *Pipe) Request(cmd *Command) (interface{}, error) {
-	for {
-		conn, err := this.route(cmd.Action)
-		if err != nil {
-			time.Sleep(1 * time.Second)
-			continue
-		}
-		result, err := conn.Request(cmd)
-		if err != nil {
-			if _, ok := err.(*DRSException); ok {
-				time.Sleep(1 * time.Second)
-				continue
-			}
-			if casted, ok := err.(*DRSError); ok {
-				return nil, casted
-			}
-		}
-		return result, err
+	conn, err := this.route(cmd.Action)
+	if err != nil {
+		time.Sleep(1 * time.Second)
+		return nil, err
 	}
+	result, err := conn.Request(cmd)
+	return result, err
 }
 
 func (this *Pipe) Broadcast(cmd *Command) error {
