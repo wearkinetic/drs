@@ -75,8 +75,10 @@ func (this *Connection) handle(stream *protocol.Stream) bool {
 			if cmd == nil {
 				return false
 			}
-			res, err := this.Process(cmd, this)
-			go this.respond(cmd.Key, res, err)
+			go func() {
+				res, err := this.Process(cmd, this)
+				this.respond(cmd.Key, res, err)
+			}()
 
 		case cmd := <-this.outgoing:
 			if err := stream.Encode(cmd); err != nil {
