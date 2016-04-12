@@ -47,10 +47,12 @@ func (this *Connection) handle() {
 			return
 		}
 		console.JSON(cmd)
-		result, err := this.Process(cmd, this)
-		if result != nil {
-			this.respond(cmd.Key, result, err)
-		}
+		go func() {
+			result, err := this.Process(cmd, this)
+			if result != nil {
+				this.respond(cmd.Key, result, err)
+			}
+		}()
 	}
 }
 
