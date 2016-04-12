@@ -2,6 +2,7 @@ package drs
 
 import (
 	"sync/atomic"
+	"time"
 
 	"github.com/ironbay/drs/drs-go/protocol"
 	"github.com/ironbay/go-util/actor"
@@ -38,6 +39,15 @@ func (this *Connection) Dial(proto protocol.Protocol, transport Transport, host 
 func (this *Connection) handle() {
 	defer this.stream.Close()
 	defer this.clear()
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+	go func() {
+		for range ticker.C {
+			this.Request(&Command{
+				Action: "drs.ping",
+			})
+		}
+	}()
 	for {
 		cmd := new(Command)
 		if err := this.stream.Decode(cmd); err != nil {
