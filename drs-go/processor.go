@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"runtime/debug"
+	"time"
 
 	"github.com/ironbay/delta/uuid"
 	"github.com/ironbay/dynamic"
@@ -27,13 +28,17 @@ type Processor struct {
 }
 
 func newProcessor() *Processor {
-	return &Processor{
+	result := &Processor{
 		handlers:   map[string][]func(*Message) (interface{}, error){},
 		pending:    cmap.New(),
 		total:      0,
 		exceptions: 0,
 		errors:     0,
 	}
+	result.On("drs.ping", func(msg *Message) (interface{}, error) {
+		return time.Now().UnixNano() / int64(time.Millisecond), nil
+	})
+	return result
 }
 
 func (this *Processor) On(action string, handlers ...func(*Message) (interface{}, error)) error {
