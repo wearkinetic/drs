@@ -91,7 +91,7 @@ func (this *Processor) trigger(cmd *Command, conn *Connection) (result interface
 	if !ok {
 		handlers, ok = this.handlers["*"]
 		if !ok {
-			return nil, actor.Error("No handlers for this action")
+			return nil, actor.Error("No handlers for " + cmd.Action)
 		}
 	}
 	msg := &Message{
