@@ -35,7 +35,6 @@ func (this *Connection) Dial(proto protocol.Protocol, transport Transport, host 
 	for {
 		raw, err := transport.Connect(host)
 		if err == nil {
-			this.Raw = raw
 			if this.handle(proto(raw)) {
 				break
 			}
@@ -50,6 +49,7 @@ func (this *Connection) Dial(proto protocol.Protocol, transport Transport, host 
 
 func (this *Connection) handle(stream *protocol.Stream) bool {
 	defer stream.Close()
+	this.Raw = stream.Raw
 	incoming := make(chan *Command)
 
 	go func() {
