@@ -1,6 +1,7 @@
 package drs
 
 import (
+	"io"
 	"sync/atomic"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 type Connection struct {
 	*Processor
 	stream *protocol.Stream
+	Raw    io.ReadWriteCloser
 	Cache  cmap.ConcurrentMap
 
 	OnDisconnect func(err error)
@@ -30,6 +32,7 @@ func (this *Connection) Dial(proto protocol.Protocol, transport Transport, host 
 	if err != nil {
 		return err
 	}
+	this.Raw = raw
 	this.stream = proto(raw)
 	go this.handle()
 	return nil
