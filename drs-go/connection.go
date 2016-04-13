@@ -1,6 +1,7 @@
 package drs
 
 import (
+	"io"
 	"log"
 	"sync/atomic"
 	"time"
@@ -13,6 +14,7 @@ import (
 type Connection struct {
 	*Processor
 	Cache     cmap.ConcurrentMap
+	Raw       io.ReadWriteCloser
 	outgoing  chan *Command
 	close     chan bool
 	bootstrap []*Command
@@ -33,6 +35,7 @@ func (this *Connection) Dial(proto protocol.Protocol, transport Transport, host 
 	for {
 		raw, err := transport.Connect(host)
 		if err == nil {
+			this.Raw = raw
 			if this.handle(proto(raw)) {
 				break
 			}
