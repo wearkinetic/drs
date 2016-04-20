@@ -106,7 +106,6 @@ func (this *Connection) Request(cmd *Command) (interface{}, error) {
 		res, err := this.wait(cmd, func() {
 			this.Fire(cmd)
 		})
-		log.Println(res, err)
 		if err != nil {
 			return res, nil
 		}
