@@ -24,7 +24,7 @@ func NewConnection() *Connection {
 		Processor: newProcessor(),
 		Cache:     cmap.New(),
 		outgoing:  make(chan *Command, 500),
-		close:     make(chan bool),
+		close:     make(chan bool, 1),
 		bootstrap: []*Command{},
 	}
 	return result

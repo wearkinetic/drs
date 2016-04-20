@@ -64,7 +64,6 @@ func (this *Server) Listen(host string) error {
 		}
 		this.inbound.Set(key, conn)
 		defer func() {
-			conn.Close()
 			for _, cb := range this.disconnect {
 				cb(conn)
 			}
