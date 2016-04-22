@@ -118,6 +118,7 @@ func (this *Connection) Request(cmd *Command) (interface{}, error) {
 
 func (this *Connection) respond(key string, res interface{}, err error) {
 	if err != nil {
+		log.Println(err)
 		response := &Command{
 			Key:    key,
 			Action: EXCEPTION,
