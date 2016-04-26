@@ -126,6 +126,9 @@ export default class Connection {
 			})
 			delete this._pending[key]
 		})
-		return this._raw.close()
+		if (this._raw){
+			this._raw.close()
+		}
+		return true
 	}
 }
