@@ -55,7 +55,6 @@ func (this *Connection) handle(stream *protocol.Stream) bool {
 		for {
 			cmd := new(Command)
 			if err := stream.Decode(cmd); err != nil {
-				log.Println(err)
 				break
 			}
 			incoming <- cmd
