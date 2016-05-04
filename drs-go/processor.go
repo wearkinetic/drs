@@ -21,14 +21,14 @@ type Processor struct {
 	pending    cmap.ConcurrentMap
 	errors     int64
 	exceptions int64
-	total      int64
+	success    int64
 }
 
 func newProcessor() *Processor {
 	return &Processor{
 		handlers:   map[string][]func(*Message) (interface{}, error){},
 		pending:    cmap.New(),
-		total:      0,
+		success:    0,
 		exceptions: 0,
 		errors:     0,
 	}

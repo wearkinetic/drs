@@ -134,6 +134,7 @@ func (this *Connection) respond(key string, res interface{}, err error) {
 		this.Fire(response)
 		return
 	}
+	atomic.AddInt64(&this.success, 1)
 	this.Fire(&Command{
 		Key:    key,
 		Action: RESPONSE,

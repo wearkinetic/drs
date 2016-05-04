@@ -48,7 +48,7 @@ func New(transport Transport) *Pipe {
 				"outbound": result.outbound.Count(),
 			},
 			"commands": map[string]interface{}{
-				"total":      result.total,
+				"success":    result.success,
 				"exceptions": result.exceptions,
 				"errors":     result.errors,
 			},
