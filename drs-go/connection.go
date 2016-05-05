@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ironbay/drs/drs-go/protocol"
+	"github.com/ironbay/go-util/console"
 	"github.com/streamrail/concurrent-map"
 )
 
@@ -76,8 +77,7 @@ func (this *Connection) handle(stream *protocol.Stream) bool {
 				return false
 			}
 			go func() {
-				res, err := this.Process(cmd, this)
-				this.respond(cmd, res, err)
+				this.process(cmd, this)
 			}()
 
 		case cmd := <-this.outgoing:
@@ -92,6 +92,7 @@ func (this *Connection) handle(stream *protocol.Stream) bool {
 }
 
 func (this *Connection) Fire(cmd *Command) {
+	console.JSON(cmd)
 	this.outgoing <- cmd
 }
 

@@ -67,21 +67,20 @@ func (this *Processor) wait(cmd *Command, cb func()) (interface{}, error) {
 	return response.Body, nil
 }
 
-func (this *Processor) Process(cmd *Command, conn *Connection) (interface{}, error) {
+func (this *Processor) process(cmd *Command, conn *Connection) {
 	if cmd.Action == RESPONSE || cmd.Action == ERROR || cmd.Action == EXCEPTION {
 		waiting, ok := this.pending.Get(cmd.Key)
 		if ok {
 			waiting.(chan *Command) <- cmd
 			this.pending.Remove(cmd.Key)
 		}
-		return nil, nil
+		return
 	}
-
-	// atomic.AddInt64(&this.total, 1)
-	return this.trigger(cmd, conn)
+	res, err := this.Trigger(cmd, conn)
+	conn.respond(cmd, res, err)
 }
 
-func (this *Processor) trigger(cmd *Command, conn *Connection) (result interface{}, err error) {
+func (this *Processor) Trigger(cmd *Command, conn *Connection) (result interface{}, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Println(r)
