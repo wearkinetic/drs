@@ -47,11 +47,7 @@ func New(transport Transport) *Pipe {
 				"inbound":  result.inbound.Count(),
 				"outbound": result.outbound.Count(),
 			},
-			"commands": map[string]interface{}{
-				"success":    result.success,
-				"exceptions": result.exceptions,
-				"errors":     result.errors,
-			},
+			"commands":  result.stats,
 			"functions": functions,
 		})
 	})

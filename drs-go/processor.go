@@ -17,20 +17,22 @@ type Message struct {
 }
 
 type Processor struct {
-	handlers   map[string][]func(*Message) (interface{}, error)
-	pending    cmap.ConcurrentMap
-	errors     int64
-	exceptions int64
-	success    int64
+	handlers map[string][]func(*Message) (interface{}, error)
+	pending  cmap.ConcurrentMap
+	stats    cmap.ConcurrentMap
+}
+
+type Stats struct {
+	Errors     int64 `json:"errors"`
+	Exceptions int64 `json:"exceptions"`
+	Success    int64 `json:"success"`
 }
 
 func newProcessor() *Processor {
 	return &Processor{
-		handlers:   map[string][]func(*Message) (interface{}, error){},
-		pending:    cmap.New(),
-		success:    0,
-		exceptions: 0,
-		errors:     0,
+		handlers: map[string][]func(*Message) (interface{}, error){},
+		pending:  cmap.New(),
+		stats:    cmap.New(),
 	}
 }
 

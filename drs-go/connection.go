@@ -77,7 +77,7 @@ func (this *Connection) handle(stream *protocol.Stream) bool {
 			}
 			go func() {
 				res, err := this.Process(cmd, this)
-				this.respond(cmd.Key, res, err)
+				this.respond(cmd, res, err)
 			}()
 
 		case cmd := <-this.outgoing:
@@ -115,11 +115,17 @@ func (this *Connection) Request(cmd *Command) (interface{}, error) {
 	}
 }
 
-func (this *Connection) respond(key string, res interface{}, err error) {
+func (this *Connection) respond(cmd *Command, res interface{}, err error) {
+	match, ok := this.stats.Get(cmd.Action)
+	if !ok {
+		match = new(Stats)
+		this.stats.Set(cmd.Action, match)
+	}
+	stats := match.(*Stats)
 	if err != nil {
 		log.Println(err)
 		response := &Command{
-			Key:    key,
+			Key:    cmd.Key,
 			Action: EXCEPTION,
 			Body: map[string]interface{}{
 				"message": err.Error(),
@@ -127,16 +133,16 @@ func (this *Connection) respond(key string, res interface{}, err error) {
 		}
 		if _, ok := err.(*DRSError); ok {
 			response.Action = ERROR
-			atomic.AddInt64(&this.errors, 1)
+			atomic.AddInt64(&stats.Errors, 1)
 		} else {
-			atomic.AddInt64(&this.exceptions, 1)
+			atomic.AddInt64(&stats.Exceptions, 1)
 		}
 		this.Fire(response)
 		return
 	}
-	atomic.AddInt64(&this.success, 1)
+	atomic.AddInt64(&stats.Success, 1)
 	this.Fire(&Command{
-		Key:    key,
+		Key:    cmd.Key,
 		Action: RESPONSE,
 		Body:   res,
 	})
