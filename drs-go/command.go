@@ -1,9 +1,10 @@
 package drs
 
 type Command struct {
-	Key    string      `json:"key,omitempty"`
-	Action string      `json:"action,omitempty"`
-	Body   interface{} `json:"body,omitempty"`
+	Key     string      `json:"key,omitempty"`
+	Action  string      `json:"action,omitempty"`
+	Body    interface{} `json:"body,omitempty"`
+	Version int         `json:"version,omitempty"`
 }
 
 func (this *Command) Map() map[string]interface{} {
