@@ -17,6 +17,7 @@ type Message struct {
 type Processor struct {
 	handlers map[string][]func(*Message) (interface{}, error)
 	pending  cmap.ConcurrentMap
+	parent   *Processor
 }
 
 func NewProcessor() *Processor {
@@ -44,6 +45,10 @@ func (this *Processor) Process(conn *Connection, cmd *Command) {
 		}
 		this.pending.Remove(cmd.Key)
 		match.(chan *Command) <- cmd
+	}
+	if this.parent != nil {
+		this.parent.Process(conn, cmd)
+		return
 	}
 	resp, err := this.Invoke(conn, cmd)
 	conn.respond(cmd.Key, resp, err)

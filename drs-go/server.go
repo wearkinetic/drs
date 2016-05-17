@@ -7,33 +7,28 @@ import (
 )
 
 type Server struct {
-	protocol  protocol.Protocol
-	transport Transport
-	Events    struct {
-		Connect    []func(*Connection) error
-		Disconnect []func(*Connection)
-	}
+	*Processor
+	protocol   protocol.Protocol
+	transport  Transport
+	connect    []func(*Connection) error
+	disconnect []func(*Connection)
 }
 
 func New(transport Transport, protocol protocol.Protocol) *Server {
 	return &Server{
-		protocol:  protocol,
-		transport: transport,
-		Events: struct {
-			Connect    []func(*Connection) error
-			Disconnect []func(*Connection)
-		}{
-			[]func(*Connection) error{},
-			[]func(*Connection){},
-		},
+		Processor:  NewProcessor(),
+		protocol:   protocol,
+		transport:  transport,
+		connect:    []func(*Connection) error{},
+		disconnect: []func(*Connection){},
 	}
 }
 
 func (this *Server) Listen(host string) error {
 	return this.transport.Listen(host, func(raw io.ReadWriteCloser) {
 		conn := Accept(this.protocol, raw)
-
-		for _, cb := range this.Events.Connect {
+		conn.parent = this.Processor
+		for _, cb := range this.connect {
 			err := cb(conn)
 			if err != nil {
 				conn.Close()
@@ -41,10 +36,18 @@ func (this *Server) Listen(host string) error {
 			}
 		}
 		defer func() {
-			for _, cb := range this.Events.Disconnect {
+			for _, cb := range this.disconnect {
 				cb(conn)
 			}
 		}()
 		conn.Read()
 	})
+}
+
+func (this *Server) OnConnect(cb func(*Connection) error) {
+	this.connect = append(this.connect, cb)
+}
+
+func (this *Server) OnDisconnect(cb func(*Connection)) {
+	this.disconnect = append(this.disconnect, cb)
 }

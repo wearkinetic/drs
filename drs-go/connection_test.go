@@ -12,11 +12,8 @@ import (
 
 func TestConnection(t *testing.T) {
 	server := New(ws.New(dynamic.Empty()), protocol.JSON)
-	server.Events.Connect = append(server.Events.Connect, func(conn *Connection) error {
-		conn.On("drs.ping", func(msg *Message) (interface{}, error) {
-			return time.Now().UnixNano() / int64(time.Millisecond), nil
-		})
-		return nil
+	server.On("drs.ping", func(msg *Message) (interface{}, error) {
+		return time.Now().UnixNano() / int64(time.Millisecond), nil
 	})
 	go server.Listen(":12000")
 	transport := ws.New(map[string]interface{}{"token": "djkhaled"})
