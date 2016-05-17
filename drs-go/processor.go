@@ -1,6 +1,9 @@
 package drs
 
 import (
+	"log"
+	"runtime/debug"
+
 	"github.com/ironbay/dynamic"
 	"github.com/streamrail/concurrent-map"
 )
@@ -46,7 +49,14 @@ func (this *Processor) Process(conn *Connection, cmd *Command) {
 	conn.respond(cmd.Key, resp, err)
 }
 
-func (this *Processor) Invoke(conn *Connection, cmd *Command) (interface{}, error) {
+func (this *Processor) Invoke(conn *Connection, cmd *Command) (result interface{}, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println(r)
+			log.Println(string(debug.Stack()))
+			err = r.(error)
+		}
+	}()
 	message := &Message{
 		Conn:    conn,
 		Command: cmd,
@@ -56,8 +66,6 @@ func (this *Processor) Invoke(conn *Connection, cmd *Command) (interface{}, erro
 	if handlers == nil {
 		return nil, Error("No handlers for " + cmd.Action)
 	}
-	var result interface{}
-	var err error
 	for _, cb := range handlers {
 		result, err = cb(message)
 		if err != nil {

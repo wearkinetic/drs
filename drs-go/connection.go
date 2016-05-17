@@ -20,16 +20,16 @@ func Dial(proto protocol.Protocol, transport Transport, host string) (*Connectio
 	if err != nil {
 		return nil, err
 	}
-	return Accept(proto, raw)
+	return Accept(proto, raw), nil
 }
 
-func Accept(proto protocol.Protocol, raw io.ReadWriteCloser) (*Connection, error) {
+func Accept(proto protocol.Protocol, raw io.ReadWriteCloser) *Connection {
 	conn := &Connection{
 		Processor: NewProcessor(),
 		Stream:    proto(raw),
 		Cache:     cmap.New(),
 	}
-	return conn, nil
+	return conn
 }
 
 func (this *Connection) Read() error {
@@ -39,7 +39,7 @@ func (this *Connection) Read() error {
 		if err = this.Stream.Decode(cmd); err != nil {
 			break
 		}
-		this.Process(this, cmd)
+		go this.Process(this, cmd)
 	}
 	return err
 }
