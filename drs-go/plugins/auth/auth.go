@@ -2,8 +2,6 @@ package auth
 
 import "github.com/ironbay/drs/drs-go"
 import "golang.org/x/net/websocket"
-import "io"
-import "errors"
 
 func Attach(server *drs.Server, cb func(string) (string, error)) {
 	server.On(
@@ -17,14 +15,14 @@ func Attach(server *drs.Server, cb func(string) (string, error)) {
 			if err != nil {
 				return nil, drs.Error(err.Error())
 			}
-			msg.Connection.Cache.Set("user", user)
+			msg.Conn.Cache.Set("user", user)
 			return user, nil
 		},
 	)
 
 	// LEGACY
-	server.OnConnect(func(conn *drs.Connection, raw io.ReadWriteCloser) error {
-		ws := raw.(*websocket.Conn)
+	server.OnConnect(func(conn *drs.Connection) error {
+		ws := conn.Stream.Raw.(*websocket.Conn)
 		query := ws.Request().URL.Query()
 		token := query.Get("token")
 		user, err := cb(token)
@@ -37,10 +35,10 @@ func Attach(server *drs.Server, cb func(string) (string, error)) {
 }
 
 func Validator(msg *drs.Message) (interface{}, error) {
-	user, ok := msg.Connection.Cache.Get("user")
+	user, ok := msg.Conn.Cache.Get("user")
 	if ok {
 		msg.Context["user"] = user
 		return nil, nil
 	}
-	return nil, errors.New("Authentication required")
+	return nil, drs.Error("Authentication required")
 }

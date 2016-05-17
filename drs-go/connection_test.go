@@ -16,6 +16,7 @@ func TestConnection(t *testing.T) {
 		return time.Now().UnixNano() / int64(time.Millisecond), nil
 	})
 	go server.Listen(":12000")
+
 	transport := ws.New(map[string]interface{}{"token": "djkhaled"})
 	conn, err := Dial(protocol.JSON, transport, "localhost:12000")
 	log.Println("Connected")
@@ -23,6 +24,7 @@ func TestConnection(t *testing.T) {
 		t.Fatal(err)
 	}
 	go conn.Read()
+
 	result, err := conn.Call(&Command{
 		Action: "drs.ping",
 	})
