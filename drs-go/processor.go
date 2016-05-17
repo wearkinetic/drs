@@ -45,6 +45,7 @@ func (this *Processor) Process(conn *Connection, cmd *Command) {
 		}
 		this.pending.Remove(cmd.Key)
 		match.(chan *Command) <- cmd
+		return
 	}
 	if this.parent != nil {
 		this.parent.Process(conn, cmd)

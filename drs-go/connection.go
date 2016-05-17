@@ -6,6 +6,7 @@ import (
 
 	"github.com/ironbay/drs/drs-go/protocol"
 	"github.com/ironbay/dynamic"
+	"github.com/satori/go.uuid"
 	"github.com/streamrail/concurrent-map"
 )
 
@@ -46,14 +47,13 @@ func (this *Connection) Read() error {
 
 func (this *Connection) Call(cmd *Command) (interface{}, error) {
 	if cmd.Key == "" {
-		cmd.Key = "1234"
+		cmd.Key = uuid.NewV4().String()
 	}
+	block := this.Enqueue(cmd.Key)
 	for {
-		block := this.Enqueue(cmd.Key)
-		err := this.Stream.Encode(cmd)
+		err := this.Fire(cmd)
 		if err != nil {
-			time.Sleep(1 * time.Second)
-			continue
+			return nil, err
 		}
 		result := <-block
 		switch result.Action {
@@ -67,6 +67,10 @@ func (this *Connection) Call(cmd *Command) (interface{}, error) {
 			return result.Body, nil
 		}
 	}
+}
+
+func (this *Connection) Fire(cmd *Command) error {
+	return this.Stream.Encode(cmd)
 }
 
 func (this *Connection) Close() {

@@ -8,8 +8,8 @@ import (
 
 type Server struct {
 	*Processor
-	protocol   protocol.Protocol
-	transport  Transport
+	Protocol   protocol.Protocol
+	Transport  Transport
 	connect    []func(*Connection) error
 	disconnect []func(*Connection)
 }
@@ -17,16 +17,16 @@ type Server struct {
 func New(transport Transport, protocol protocol.Protocol) *Server {
 	return &Server{
 		Processor:  NewProcessor(),
-		protocol:   protocol,
-		transport:  transport,
+		Protocol:   protocol,
+		Transport:  transport,
 		connect:    []func(*Connection) error{},
 		disconnect: []func(*Connection){},
 	}
 }
 
 func (this *Server) Listen(host string) error {
-	return this.transport.Listen(host, func(raw io.ReadWriteCloser) {
-		conn := Accept(this.protocol, raw)
+	return this.Transport.Listen(host, func(raw io.ReadWriteCloser) {
+		conn := Accept(this.Protocol, raw)
 		conn.parent = this.Processor
 		for _, cb := range this.connect {
 			err := cb(conn)
@@ -50,4 +50,8 @@ func (this *Server) OnConnect(cb func(*Connection) error) {
 
 func (this *Server) OnDisconnect(cb func(*Connection)) {
 	this.disconnect = append(this.disconnect, cb)
+}
+
+func (this *Server) Close() {
+
 }
