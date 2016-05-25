@@ -17,13 +17,20 @@ type Message struct {
 type Processor struct {
 	handlers map[string][]func(*Message) (interface{}, error)
 	pending  cmap.ConcurrentMap
-	parent   *Processor
+	stats    cmap.ConcurrentMap
+}
+
+type Stats struct {
+	Errors     int64 `json:"errors"`
+	Exceptions int64 `json:"exceptions"`
+	Success    int64 `json:"success"`
 }
 
 func NewProcessor() *Processor {
 	return &Processor{
 		handlers: make(map[string][]func(*Message) (interface{}, error)),
 		pending:  cmap.New(),
+		stats:    cmap.New(),
 	}
 }
 
@@ -47,10 +54,10 @@ func (this *Processor) Process(conn *Connection, cmd *Command) {
 		match.(chan *Command) <- cmd
 		return
 	}
-	if this.parent != nil {
-		this.parent.Process(conn, cmd)
-		return
-	}
+	// if this.parent != nil {
+	// 	this.parent.Process(conn, cmd)
+	// 	return
+	// }
 	resp, err := this.Invoke(conn, cmd)
 	conn.respond(cmd.Key, resp, err)
 }

@@ -2,6 +2,7 @@ package drs
 
 import (
 	"io"
+	"sync/atomic"
 	"time"
 
 	"github.com/ironbay/drs/drs-go/protocol"
@@ -50,6 +51,12 @@ func (this *Connection) Call(cmd *Command) (interface{}, error) {
 		cmd.Key = uuid.NewV4().String()
 	}
 	block := this.Enqueue(cmd.Key)
+	match, ok := this.stats.Get(cmd.Action)
+	if !ok {
+		match = new(Stats)
+		this.stats.Set(cmd.Action, match)
+	}
+	stats := match.(*Stats)
 	for {
 		err := this.Fire(cmd)
 		if err != nil {
@@ -58,12 +65,15 @@ func (this *Connection) Call(cmd *Command) (interface{}, error) {
 		result := <-block
 		switch result.Action {
 		case EXCEPTION:
+			atomic.AddInt64(&stats.Exceptions, 1)
 			time.Sleep(1 * time.Second)
 			continue
 		case ERROR:
 			message := dynamic.String(result.Map(), "message")
+			atomic.AddInt64(&stats.Errors, 1)
 			return nil, Error(message)
 		case RESPONSE:
+			atomic.AddInt64(&stats.Errors, 1)
 			return result.Body, nil
 		}
 	}
