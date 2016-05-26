@@ -50,7 +50,6 @@ func (this *Connection) Call(cmd *Command) (interface{}, error) {
 	if cmd.Key == "" {
 		cmd.Key = uuid.NewV4().String()
 	}
-	block := this.Enqueue(cmd.Key)
 	match, ok := this.stats.Get(cmd.Action)
 	if !ok {
 		match = new(Stats)
@@ -58,6 +57,7 @@ func (this *Connection) Call(cmd *Command) (interface{}, error) {
 	}
 	stats := match.(*Stats)
 	for {
+		block := this.Enqueue(cmd.Key)
 		err := this.Fire(cmd)
 		if err != nil {
 			return nil, err
@@ -94,14 +94,14 @@ func (this *Connection) respond(key string, resp interface{}, err error) {
 	if err == nil {
 		cmd.Action = RESPONSE
 		cmd.Body = resp
-	}
-	if _, ok := err.(*DRSError); ok {
-		cmd.Action = ERROR
-		cmd.Body = err
-	}
-	if _, ok := err.(*DRSException); ok {
-		cmd.Action = EXCEPTION
-		cmd.Body = err
+	} else {
+		if _, ok := err.(*DRSError); ok {
+			cmd.Action = ERROR
+			cmd.Body = err
+		} else {
+			cmd.Action = EXCEPTION
+			cmd.Body = err
+		}
 	}
 	this.Stream.Encode(cmd)
 }
