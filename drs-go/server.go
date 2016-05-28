@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/ironbay/delta/uuid"
 	"github.com/ironbay/drs/drs-go/protocol"
 	"github.com/streamrail/concurrent-map"
 )
@@ -54,11 +55,14 @@ func (this *Server) Listen(host string) error {
 				return
 			}
 		}
+		key := uuid.Ascending()
 		defer func() {
+			this.inbound.Remove(key)
 			for _, cb := range this.disconnect {
 				cb(conn)
 			}
 		}()
+		this.inbound.Set(key, true)
 		conn.Read()
 	})
 }

@@ -2,6 +2,7 @@ package drs
 
 import (
 	"io"
+	"log"
 	"sync/atomic"
 	"time"
 
@@ -99,6 +100,7 @@ func (this *Connection) respond(key string, resp interface{}, err error) {
 			cmd.Action = ERROR
 			cmd.Body = err
 		} else {
+			log.Println(err)
 			cmd.Action = EXCEPTION
 			cmd.Body = err
 		}
