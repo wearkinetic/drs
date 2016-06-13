@@ -208,7 +208,7 @@ var Connection = function () {
 		value: function dial(transport, host) {
 			var _this3 = this;
 
-			if (this._closed) throw new _error.Error('closed');
+			if (this._closed) return;
 			return transport.dial(host).then(function () {
 				var ref = _asyncToGenerator(regeneratorRuntime.mark(function _callee6(raw) {
 					return regeneratorRuntime.wrap(function _callee6$(_context6) {
@@ -292,48 +292,42 @@ var Connection = function () {
 										cmd = _this4._protocol.decode(data);
 
 										if (!(cmd.action === 'drs.response' || cmd.action === 'drs.error' || cmd.action === 'drs.exception')) {
-											_context8.next = 8;
+											_context8.next = 5;
 											break;
 										}
 
 										waiting = _this4._pending[cmd.key];
 
-										if (!waiting) {
-											_context8.next = 7;
-											break;
+										if (waiting) {
+											waiting(cmd);
+											delete _this4._pending[cmd.key];
 										}
-
-										waiting(cmd);
-										delete _this4._pending[cmd.key];
 										return _context8.abrupt('return');
 
-									case 7:
-										return _context8.abrupt('return');
-
-									case 8:
-										_context8.prev = 8;
-										_context8.next = 11;
+									case 5:
+										_context8.prev = 5;
+										_context8.next = 8;
 										return _this4._processor.process(cmd);
 
-									case 11:
+									case 8:
 										result = _context8.sent;
 
 										_this4._processor.respond(cmd, _this4, result);
-										_context8.next = 18;
+										_context8.next = 15;
 										break;
 
-									case 15:
-										_context8.prev = 15;
-										_context8.t0 = _context8['catch'](8);
+									case 12:
+										_context8.prev = 12;
+										_context8.t0 = _context8['catch'](5);
 
 										_this4._processor.respond(cmd, _this4, _context8.t0);
 
-									case 18:
+									case 15:
 									case 'end':
 										return _context8.stop();
 								}
 							}
-						}, _callee8, _this4, [[8, 15]]);
+						}, _callee8, _this4, [[5, 12]]);
 					})),
 					    _this = _this4;
 
@@ -341,11 +335,7 @@ var Connection = function () {
 						return ref.apply(_this, arguments);
 					};
 				}());
-
-				_this4._raw.on('close', function () {
-					console.log('closed');
-					resolve();
-				});
+				_this4._raw.on('close', resolve);
 			});
 		}
 	}, {
