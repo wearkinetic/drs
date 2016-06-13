@@ -39,10 +39,9 @@ var Connection = function () {
 		this._pending = {};
 		this._processor = new _processor2.default();
 		this.on = this._processor.on.bind(this._processor);
-
 		this._interval = setInterval(function () {
 			return _this._ping();
-		}, 1000);
+		}, 60 * 60 * 1000);
 		this._ping();
 	}
 
@@ -209,7 +208,7 @@ var Connection = function () {
 		value: function dial(transport, host) {
 			var _this3 = this;
 
-			if (this._closed) return;
+			if (this._closed) throw new _error.Error('closed');
 			return transport.dial(host).then(function () {
 				var ref = _asyncToGenerator(regeneratorRuntime.mark(function _callee6(raw) {
 					return regeneratorRuntime.wrap(function _callee6$(_context6) {
@@ -366,7 +365,10 @@ var Connection = function () {
 				});
 				delete _this5._pending[key];
 			});
-			return this._raw.close();
+			if (this._raw) {
+				this._raw.close();
+			}
+			return true;
 		}
 	}], [{
 		key: 'dial',

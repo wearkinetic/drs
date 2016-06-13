@@ -361,7 +361,7 @@ var Pipe = function () {
 		key: '_process',
 		value: function () {
 			var ref = _asyncToGenerator(regeneratorRuntime.mark(function _callee6(conn, cmd) {
-				var match, handlers, ctx, result, _iteratorNormalCompletion, _didIteratorError, _iteratorError, _iterator, _step, h, _response;
+				var match, handlers, ctx, result, _iteratorNormalCompletion, _didIteratorError, _iteratorError, _iterator, _step, h, response;
 
 				return regeneratorRuntime.wrap(function _callee6$(_context6) {
 					while (1) {
@@ -398,7 +398,7 @@ var Pipe = function () {
 
 							case 10:
 								ctx = {};
-								result = undefined;
+								result = void 0;
 								_context6.prev = 12;
 								_iteratorNormalCompletion = true;
 								_didIteratorError = false;
@@ -465,7 +465,7 @@ var Pipe = function () {
 							case 42:
 								_context6.prev = 42;
 								_context6.t1 = _context6['catch'](12);
-								_response = {
+								response = {
 									key: cmd.key,
 									action: ACTIONS.exception,
 									body: {
@@ -474,10 +474,10 @@ var Pipe = function () {
 								};
 
 								if (_context6.t1 instanceof _error2.default) {
-									_response.action = ACTIONS.error;
-									_response.body = _context6.t1;
+									response.action = ACTIONS.error;
+									response.body = _context6.t1;
 								}
-								conn.send(_response);
+								conn.send(response);
 								return _context6.abrupt('return');
 
 							case 48:

@@ -62,7 +62,7 @@ var Processor = function () {
 						switch (_context.prev = _context.next) {
 							case 0:
 								ctx = {};
-								result = undefined;
+								result = void 0;
 								_iteratorNormalCompletion = true;
 								_didIteratorError = false;
 								_iteratorError = undefined;
