@@ -68,7 +68,7 @@ export default class Connection {
 
 	dial(transport, host) {
 		if (this._closed)
-			throw new Error('closed')
+			return
 		return transport.dial(host)
 			.then(async raw => {
 				this._raw = raw
@@ -93,7 +93,6 @@ export default class Connection {
 					if (waiting) {
 						waiting(cmd)
 						delete this._pending[cmd.key]
-						return
 					}
 					return
 				}
@@ -104,11 +103,7 @@ export default class Connection {
 					this._processor.respond(cmd, this, ex)
 				}
 			})
-
-			this._raw.on('close', () => {
-				console.log('closed')
-				resolve()
-			})
+			this._raw.on('close', resolve)
 		})
 	}
 
