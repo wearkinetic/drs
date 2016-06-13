@@ -68,7 +68,7 @@ export default class Connection {
 
 	dial(transport, host) {
 		if (this._closed)
-			throw new Error('closed')
+			return
 		return transport.dial(host)
 			.then(async raw => {
 				this._raw = raw
