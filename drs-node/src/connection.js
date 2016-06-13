@@ -51,11 +51,12 @@ export default class Connection {
 	async fire(cmd) {
 		if (!cmd.key)
 			cmd.key = UUID.ascending()
-		while(!this._closed) {
+		while (!this._closed) {
 			try {
 				this._raw.send(this._protocol.encode(cmd))
 				break
 			} catch (ex) {
+				//
 			}
 			await timeout(1000)
 		}
@@ -120,7 +121,7 @@ export default class Connection {
 			})
 			delete this._pending[key]
 		})
-		if (this._raw){
+		if (this._raw) {
 			this._raw.close()
 		}
 		return true
