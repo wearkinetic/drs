@@ -1,9 +1,9 @@
 package drs
 
 import (
+	"encoding/json"
 	"io"
-	"sync"
-	"time"
+	"net/http"
 
 	"github.com/ironbay/delta/uuid"
 	"github.com/ironbay/drs/drs-go/protocol"
@@ -12,29 +12,62 @@ import (
 
 type Server struct {
 	*Processor
-	sync.Mutex
-	Protocol  protocol.Protocol
-	transport Transport
-	inbound   cmap.ConcurrentMap
-	closed    bool
-
-	connect    []func(conn *Connection, raw io.ReadWriteCloser) error
-	disconnect []func(conn *Connection)
+	Protocol   protocol.Protocol
+	Transport  Transport
+	connect    []func(*Connection) error
+	disconnect []func(*Connection)
+	inbound    cmap.ConcurrentMap
 }
 
-func NewServer(transport Transport) *Server {
-	return &Server{
-		Processor:  newProcessor(),
-		Mutex:      sync.Mutex{},
-		transport:  transport,
-		Protocol:   protocol.JSON,
+func New(transport Transport, protocol protocol.Protocol) *Server {
+	result := &Server{
+		Processor:  NewProcessor(),
+		Protocol:   protocol,
+		Transport:  transport,
+		connect:    []func(*Connection) error{},
+		disconnect: []func(*Connection){},
 		inbound:    cmap.New(),
-		connect:    make([]func(conn *Connection, raw io.ReadWriteCloser) error, 0),
-		disconnect: make([]func(conn *Connection), 0),
 	}
+	http.HandleFunc("/stats", func(w http.ResponseWriter, req *http.Request) {
+		functions := []string{}
+		for key, _ := range result.Processor.handlers {
+			functions = append(functions, key)
+		}
+		response(w, 200, map[string]interface{}{
+			"connections": map[string]interface{}{
+				"inbound": result.inbound.Count(),
+			},
+			"commands":  result.stats,
+			"functions": functions,
+		})
+	})
+	return result
 }
 
-func (this *Server) OnConnect(cb func(*Connection, io.ReadWriteCloser) error) {
+func (this *Server) Listen(host string) error {
+	return this.Transport.Listen(host, func(raw io.ReadWriteCloser) {
+		conn := Accept(this.Protocol, raw)
+		conn.Processor = this.Processor
+		for _, cb := range this.connect {
+			err := cb(conn)
+			if err != nil {
+				conn.Close()
+				return
+			}
+		}
+		key := uuid.Ascending()
+		defer func() {
+			this.inbound.Remove(key)
+			for _, cb := range this.disconnect {
+				cb(conn)
+			}
+		}()
+		this.inbound.Set(key, true)
+		conn.Read()
+	})
+}
+
+func (this *Server) OnConnect(cb func(*Connection) error) {
 	this.connect = append(this.connect, cb)
 }
 
@@ -42,46 +75,13 @@ func (this *Server) OnDisconnect(cb func(*Connection)) {
 	this.disconnect = append(this.disconnect, cb)
 }
 
-func (this *Server) Broadcast(cmd *Command) int {
-	for kv := range this.inbound.Iter() {
-		kv.Val.(*Connection).Fire(cmd)
-	}
-	return len(this.inbound)
-}
-
-func (this *Server) Listen(host string) error {
-	return this.transport.Listen(host, func(raw io.ReadWriteCloser) {
-		conn := NewConnection()
-		conn.Processor = this.Processor
-		key := uuid.Ascending()
-
-		for _, cb := range this.connect {
-			err := cb(conn, raw)
-			if err != nil {
-				raw.Close()
-				return
-			}
-		}
-		this.inbound.Set(key, conn)
-		defer func() {
-			for _, cb := range this.disconnect {
-				cb(conn)
-			}
-			this.inbound.Remove(key)
-		}()
-		conn.handle(this.Protocol(raw))
-	})
-}
-
 func (this *Server) Close() {
-	this.closed = true
-	for kv := range this.inbound.IterBuffered() {
-		kv.Val.(*Connection).Close()
-	}
-	for {
-		if this.inbound.Count() == 0 {
-			break
-		}
-		time.Sleep(1 * time.Second)
-	}
+
+}
+
+func response(w http.ResponseWriter, status int, input interface{}) {
+	data, _ := json.Marshal(input)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	w.Write(data)
 }

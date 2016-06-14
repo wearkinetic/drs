@@ -7,146 +7,103 @@ import (
 	"time"
 
 	"github.com/ironbay/drs/drs-go/protocol"
+	"github.com/ironbay/dynamic"
+	"github.com/satori/go.uuid"
 	"github.com/streamrail/concurrent-map"
 )
 
 type Connection struct {
 	*Processor
-	Cache     cmap.ConcurrentMap
-	Raw       io.ReadWriteCloser
-	outgoing  chan *Command
-	close     chan bool
-	bootstrap []*Command
+	Stream *protocol.Stream
+	Cache  cmap.ConcurrentMap
 }
 
-func NewConnection() *Connection {
-	result := &Connection{
-		Processor: newProcessor(),
-		Cache:     cmap.New(),
-		outgoing:  make(chan *Command, 500),
-		close:     make(chan bool, 1),
-		bootstrap: []*Command{},
-	}
-	return result
-}
-
-func (this *Connection) Dial(proto protocol.Protocol, transport Transport, host string, reconnect bool) {
-	for {
-		raw, err := transport.Connect(host)
-		if err == nil {
-			if this.handle(proto(raw)) {
-				break
-			}
-		}
-		if !reconnect {
-			break
-		}
-		time.Sleep(1 * time.Second)
-	}
-	close(this.outgoing)
-}
-
-func (this *Connection) handle(stream *protocol.Stream) bool {
-	defer stream.Close()
-	this.Raw = stream.Raw
-	incoming := make(chan *Command)
-
-	go func() {
-		for {
-			cmd := new(Command)
-			if err := stream.Decode(cmd); err != nil {
-				break
-			}
-			incoming <- cmd
-		}
-		close(incoming)
-	}()
-
-	for _, cmd := range this.bootstrap {
-		if err := stream.Encode(cmd); err != nil {
-			return false
-		}
-	}
-
-	for {
-		select {
-
-		case cmd := <-incoming:
-			if cmd == nil {
-				return false
-			}
-			go func() {
-				this.process(cmd, this)
-			}()
-
-		case cmd := <-this.outgoing:
-			if err := stream.Encode(cmd); err != nil {
-				go this.Fire(cmd)
-			}
-
-		case <-this.close:
-			return true
-		}
-	}
-}
-
-func (this *Connection) Fire(cmd *Command) {
-	this.outgoing <- cmd
-}
-
-func (this *Connection) Bootstrap(cmd *Command) (interface{}, error) {
-	this.bootstrap = append(this.bootstrap, cmd)
-	return this.Request(cmd)
-}
-
-func (this *Connection) Request(cmd *Command) (interface{}, error) {
-	for {
-		res, err := this.wait(cmd, func() {
-			this.Fire(cmd)
-		})
-		if err != nil {
-			return res, nil
-		}
-		if _, ok := err.(*DRSException); ok {
-			continue
-		}
+func Dial(proto protocol.Protocol, transport Transport, host string) (*Connection, error) {
+	raw, err := transport.Connect(host)
+	if err != nil {
 		return nil, err
 	}
+	return Accept(proto, raw), nil
 }
 
-func (this *Connection) respond(cmd *Command, res interface{}, err error) {
+func Accept(proto protocol.Protocol, raw io.ReadWriteCloser) *Connection {
+	conn := &Connection{
+		Processor: NewProcessor(),
+		Stream:    proto(raw),
+		Cache:     cmap.New(),
+	}
+	return conn
+}
+
+func (this *Connection) Read() error {
+	var err error
+	for {
+		cmd := new(Command)
+		if err = this.Stream.Decode(cmd); err != nil {
+			break
+		}
+		go this.Process(this, cmd)
+	}
+	return err
+}
+
+func (this *Connection) Call(cmd *Command) (interface{}, error) {
+	if cmd.Key == "" {
+		cmd.Key = uuid.NewV4().String()
+	}
 	match, ok := this.stats.Get(cmd.Action)
 	if !ok {
 		match = new(Stats)
 		this.stats.Set(cmd.Action, match)
 	}
 	stats := match.(*Stats)
-	if err != nil {
-		log.Println(err)
-		response := &Command{
-			Key:    cmd.Key,
-			Action: EXCEPTION,
-			Body: map[string]interface{}{
-				"message": err.Error(),
-			},
+	for {
+		block := this.Enqueue(cmd.Key)
+		err := this.Fire(cmd)
+		if err != nil {
+			return nil, err
 		}
-		if _, ok := err.(*DRSError); ok {
-			response.Action = ERROR
-			atomic.AddInt64(&stats.Errors, 1)
-		} else {
+		result := <-block
+		switch result.Action {
+		case EXCEPTION:
 			atomic.AddInt64(&stats.Exceptions, 1)
+			time.Sleep(1 * time.Second)
+			continue
+		case ERROR:
+			message := dynamic.String(result.Map(), "message")
+			atomic.AddInt64(&stats.Errors, 1)
+			return nil, Error(message)
+		case RESPONSE:
+			atomic.AddInt64(&stats.Errors, 1)
+			return result.Body, nil
 		}
-		this.Fire(response)
-		return
 	}
-	atomic.AddInt64(&stats.Success, 1)
-	this.Fire(&Command{
-		Key:    cmd.Key,
-		Action: RESPONSE,
-		Body:   res,
-	})
+}
+
+func (this *Connection) Fire(cmd *Command) error {
+	return this.Stream.Encode(cmd)
 }
 
 func (this *Connection) Close() {
-	this.close <- true
+	this.Stream.Close()
+}
+
+func (this *Connection) respond(key string, resp interface{}, err error) {
+	cmd := &Command{
+		Key: key,
+	}
+	if err == nil {
+		cmd.Action = RESPONSE
+		cmd.Body = resp
+	} else {
+		if _, ok := err.(*DRSError); ok {
+			cmd.Action = ERROR
+			cmd.Body = err
+		} else {
+			log.Println(err)
+			cmd.Action = EXCEPTION
+			cmd.Body = err
+		}
+	}
+	this.Stream.Encode(cmd)
 }
