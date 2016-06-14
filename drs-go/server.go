@@ -3,6 +3,7 @@ package drs
 import (
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 
 	"github.com/ironbay/delta/uuid"
@@ -51,6 +52,7 @@ func (this *Server) Listen(host string) error {
 		for _, cb := range this.connect {
 			err := cb(conn)
 			if err != nil {
+				log.Println(err)
 				conn.Close()
 				return
 			}

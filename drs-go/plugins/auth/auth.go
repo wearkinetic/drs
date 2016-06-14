@@ -26,6 +26,9 @@ func Attach(server *drs.Server, cb func(string) (string, error)) {
 		ws := conn.Stream.Raw.(*websocket.Conn)
 		query := ws.Request().URL.Query()
 		token := query.Get("token")
+		if token == "" {
+			return nil
+		}
 		user, err := cb(token)
 		if err != nil {
 			return err
