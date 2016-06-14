@@ -15,8 +15,7 @@ export default class Connection {
 		this._pending = {}
 		this._processor = new Processor()
 		this.on = this._processor.on.bind(this._processor)
-
-		this._interval = setInterval(() => this._ping(), 1000)
+		this._interval = setInterval(() => this._ping(), 60 * 60 * 1000)
 		this._ping()
 	}
 
@@ -52,11 +51,12 @@ export default class Connection {
 	async fire(cmd) {
 		if (!cmd.key)
 			cmd.key = UUID.ascending()
-		while(!this._closed) {
+		while (!this._closed) {
 			try {
 				this._raw.send(this._protocol.encode(cmd))
 				break
 			} catch (ex) {
+				//
 			}
 			await timeout(1000)
 		}
@@ -94,7 +94,6 @@ export default class Connection {
 					if (waiting) {
 						waiting(cmd)
 						delete this._pending[cmd.key]
-						return
 					}
 					return
 				}
@@ -105,11 +104,7 @@ export default class Connection {
 					this._processor.respond(cmd, this, ex)
 				}
 			})
-
-			this._raw.on('close', () => {
-				console.log('closed')
-				resolve()
-			})
+			this._raw.on('close', resolve)
 		})
 	}
 
@@ -126,7 +121,7 @@ export default class Connection {
 			})
 			delete this._pending[key]
 		})
-		if (this._raw){
+		if (this._raw) {
 			this._raw.close()
 		}
 		return true
