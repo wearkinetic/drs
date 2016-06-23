@@ -85,6 +85,9 @@ func (this *Connection) Fire(cmd *Command) error {
 }
 
 func (this *Connection) Close() {
+	if this.Stream == nil {
+		return
+	}
 	this.Stream.Close()
 }
 
