@@ -1,8 +1,6 @@
 package debug
 
 import (
-	"time"
-
 	"github.com/ironbay/drs/drs-go"
 )
 
