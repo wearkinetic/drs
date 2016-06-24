@@ -42,10 +42,10 @@ export default class Connection {
 			await this.fire(cmd)
 		})
 		if (result.action === 'drs.error')
-			throw new Error(result.body)
+			throw new Error(result)
 		if (result.action === 'drs.exception')
-			throw new Exception(result.body)
-		return result.body
+			throw new Exception(result)
+		return result
 	}
 
 	async fire(cmd) {
