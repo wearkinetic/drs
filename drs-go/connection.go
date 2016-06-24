@@ -104,11 +104,11 @@ func (this *Connection) respond(key string, resp interface{}, err error) {
 	} else {
 		if _, ok := err.(*DRSError); ok {
 			cmd.Action = ERROR
-			cmd.Body = err
+			cmd.Body = dynamic.Build("message", err, "code", 1000)
 		} else {
 			log.Println(err)
 			cmd.Action = EXCEPTION
-			cmd.Body = err
+			cmd.Body = dynamic.Build("message", err, "code", 1000)
 		}
 	}
 	this.Stream.Encode(cmd)
