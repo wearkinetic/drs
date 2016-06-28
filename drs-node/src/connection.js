@@ -41,11 +41,12 @@ export default class Connection {
 			this._pending[cmd.key] = resolve
 			await this.fire(cmd)
 		})
+		const wrapped = { ...result, key: cmd.key } 
 		if (result.action === 'drs.error')
-			throw new Error(result.body)
+			throw new Error(wrapped)
 		if (result.action === 'drs.exception')
-			throw new Exception(result.body)
-		return result.body
+			throw new Exception(wrapped)
+		return wrapped
 	}
 
 	async fire(cmd) {
