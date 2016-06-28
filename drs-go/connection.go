@@ -105,13 +105,13 @@ func (this *Connection) respond(key string, resp interface{}, err error) {
 		if _, ok := err.(*DRSError); ok {
 			cmd.Action = ERROR
 			cmd.Body = dynamic.Build(
-				"message": err.Error(),
+				"message", err.Error(),
 			)
 		} else {
 			log.Println(err)
 			cmd.Action = EXCEPTION
 			cmd.Body = dynamic.Build(
-				"message": err.Error(),
+				"message", err.Error(),
 			)
 		}
 	}
