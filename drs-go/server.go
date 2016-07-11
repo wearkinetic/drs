@@ -81,6 +81,12 @@ func (this *Server) Close() {
 
 }
 
+func (this *Server) Broadcast(msg *Command) {
+	for _, value := range this.inbound.Iter() {
+		value.(*Connection).Fire(msg)
+	}
+}
+
 func response(w http.ResponseWriter, status int, input interface{}) {
 	data, _ := json.Marshal(input)
 	w.Header().Set("Content-Type", "application/json")
