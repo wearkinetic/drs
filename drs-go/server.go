@@ -64,7 +64,7 @@ func (this *Server) Listen(host string) error {
 				cb(conn)
 			}
 		}()
-		this.inbound.Set(key, true)
+		this.inbound.Set(key, conn)
 		conn.Read()
 	})
 }
