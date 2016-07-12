@@ -1,7 +1,6 @@
 package ipc
 
 import (
-	"errors"
 	"io"
 	"os"
 )
@@ -16,7 +15,7 @@ func (this *Transport) On(action string) error {
 }
 
 func (this *Transport) Listen(host string, ch func(raw io.ReadWriteCloser)) error {
-	return errors.New("Listen: not supported for ipc")
+	return nil
 }
 
 func (this *Transport) Connect(host string) (io.ReadWriteCloser, error) {

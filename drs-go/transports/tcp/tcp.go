@@ -3,8 +3,6 @@ package tcp
 import (
 	"io"
 	"net"
-
-	"github.com/ironbay/drs/drs-go"
 )
 
 type Transport struct {
@@ -14,7 +12,7 @@ func (this *Transport) On(action string) error {
 	return nil
 }
 
-func (this *Transport) Listen(host string, ch drs.ConnectionHandler) error {
+func (this *Transport) Listen(host string, ch func(raw io.ReadWriteCloser)) error {
 	ln, err := net.Listen("tcp", host)
 	if err != nil {
 		return err
@@ -39,7 +37,7 @@ func (this *Transport) Connect(host string) (io.ReadWriteCloser, error) {
 	return conn, nil
 }
 
-func New() (*drs.Pipe, error) {
+func New() *Transport {
 	transport := new(Transport)
-	return drs.New(transport), nil
+	return transport
 }
