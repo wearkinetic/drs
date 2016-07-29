@@ -1,6 +1,7 @@
 package drs
 
 import (
+	"fmt"
 	"log"
 	"runtime/debug"
 
@@ -72,7 +73,10 @@ func (this *Processor) Invoke(conn *Connection, cmd *Command) (result interface{
 		if r := recover(); r != nil {
 			log.Println(r)
 			log.Println(string(debug.Stack()))
-			err = r.(error)
+			var ok bool
+			if err, ok = r.(error); !ok {
+				err = Exception(fmt.Sprint(r))
+			}
 		}
 	}()
 	message := &Message{
