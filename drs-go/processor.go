@@ -20,7 +20,7 @@ type Processor struct {
 	stats    cmap.ConcurrentMap
 
 	Before func(msg *Message)
-	After  func(msg *Message)
+	After  func(msg *Message, result interface{}, err error)
 }
 
 type Stats struct {
@@ -35,7 +35,7 @@ func NewProcessor() *Processor {
 		pending:  cmap.New(),
 		stats:    cmap.New(),
 		Before:   func(msg *Message) {},
-		After:    func(msg *Message) {},
+		After:    func(msg *Message, result interface{}, err error) {},
 	}
 }
 
@@ -81,7 +81,7 @@ func (this *Processor) Invoke(conn *Connection, cmd *Command) (result interface{
 		Context: dynamic.Empty(),
 	}
 	this.Before(message)
-	defer this.After(message)
+	defer this.After(message, result, err)
 	handlers := this.handlers[cmd.Action]
 	if handlers == nil {
 		return nil, Error("No handlers for " + cmd.Action)
