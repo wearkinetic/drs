@@ -74,7 +74,7 @@ func (this *Connection) Call(cmd *Command) (interface{}, error) {
 			atomic.AddInt64(&stats.Errors, 1)
 			return nil, Error(message)
 		case RESPONSE:
-			atomic.AddInt64(&stats.Errors, 1)
+			atomic.AddInt64(&stats.Success, 1)
 			return result.Body, nil
 		}
 	}
