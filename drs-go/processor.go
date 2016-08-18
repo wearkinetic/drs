@@ -51,6 +51,10 @@ func (this *Processor) On(action string, cb ...func(*Message) (interface{}, erro
 	this.handlers[action] = cb
 }
 
+func (this *Processor) Off(action string){
+	delete(this.handlers, action)
+}
+
 func (this *Processor) Process(conn *Connection, cmd *Command) {
 	if cmd.Action == ERROR || cmd.Action == EXCEPTION || cmd.Action == RESPONSE {
 		match, ok := this.pending.Get(cmd.Key)
