@@ -1,8 +1,9 @@
 package auth
 
-import "github.com/ironbay/drs/drs-go"
-
-import "golang.org/x/net/websocket"
+import (
+	"github.com/ironbay/drs/drs-go"
+	"golang.org/x/net/websocket"
+)
 
 func Attach(server *drs.Server, cb func(string) (string, error)) {
 	server.On(

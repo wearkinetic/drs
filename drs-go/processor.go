@@ -6,6 +6,7 @@ import (
 	"runtime/debug"
 
 	"github.com/ironbay/dynamic"
+	"github.com/ironbay/go-util/console"
 	"github.com/streamrail/concurrent-map"
 )
 
@@ -72,6 +73,7 @@ func (this *Processor) Invoke(conn *Connection, cmd *Command) (result interface{
 	defer func() {
 		if r := recover(); r != nil {
 			log.Println(r)
+			console.JSON(cmd)
 			log.Println(string(debug.Stack()))
 			var ok bool
 			if err, ok = r.(error); !ok {
@@ -93,6 +95,7 @@ func (this *Processor) Invoke(conn *Connection, cmd *Command) (result interface{
 	for _, cb := range handlers {
 		result, err = cb(message)
 		if err != nil {
+			panic(err)
 			return nil, err
 		}
 	}
