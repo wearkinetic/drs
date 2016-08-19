@@ -51,7 +51,7 @@ func (this *Processor) On(action string, cb ...func(*Message) (interface{}, erro
 	this.handlers[action] = cb
 }
 
-func (this *Processor) Off(action string){
+func (this *Processor) Off(action string) {
 	delete(this.handlers, action)
 }
 
@@ -99,7 +99,6 @@ func (this *Processor) Invoke(conn *Connection, cmd *Command) (result interface{
 	for _, cb := range handlers {
 		result, err = cb(message)
 		if err != nil {
-			panic(err)
 			return nil, err
 		}
 	}
