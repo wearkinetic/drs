@@ -5,7 +5,7 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-func Attach(server *drs.Server, cb func(string) (string, error)) {
+func Attach(server *drs.Server, cb func(*drs.Connection, string) (string, error)) {
 	server.On(
 		"auth.upgrade",
 		func(msg *drs.Message) (interface{}, error) {
@@ -13,7 +13,7 @@ func Attach(server *drs.Server, cb func(string) (string, error)) {
 			if !ok {
 				return nil, drs.Error("Token must be a string")
 			}
-			user, err := cb(token)
+			user, err := cb(msg.Conn, token)
 			if err != nil {
 				return nil, drs.Error(err.Error())
 			}
@@ -30,7 +30,7 @@ func Attach(server *drs.Server, cb func(string) (string, error)) {
 		if token == "" {
 			return nil
 		}
-		user, err := cb(token)
+		user, err := cb(conn, token)
 		if err != nil {
 			return err
 		}
