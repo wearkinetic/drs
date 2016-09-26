@@ -74,6 +74,12 @@ func (this *Processor) Process(conn *Connection, cmd *Command) {
 }
 
 func (this *Processor) Invoke(conn *Connection, cmd *Command) (result interface{}, err error) {
+	message := &Message{
+		Conn:    conn,
+		Command: cmd,
+		Context: dynamic.Empty(),
+	}
+	defer this.After(message, result, err)
 	defer func() {
 		if r := recover(); r != nil {
 			log.Println(r)
@@ -85,13 +91,7 @@ func (this *Processor) Invoke(conn *Connection, cmd *Command) (result interface{
 			}
 		}
 	}()
-	message := &Message{
-		Conn:    conn,
-		Command: cmd,
-		Context: dynamic.Empty(),
-	}
 	this.Before(message)
-	defer this.After(message, result, err)
 	handlers := this.handlers[cmd.Action]
 	if handlers == nil {
 		return nil, Error("No handlers for " + cmd.Action)
