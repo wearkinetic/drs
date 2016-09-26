@@ -79,7 +79,9 @@ func (this *Processor) Invoke(conn *Connection, cmd *Command) (result interface{
 		Command: cmd,
 		Context: dynamic.Empty(),
 	}
-	defer this.After(message, result, err)
+	defer func() {
+		this.After(message, result, err)
+	}()
 	defer func() {
 		if r := recover(); r != nil {
 			log.Println(r)
