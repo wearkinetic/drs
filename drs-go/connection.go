@@ -2,12 +2,12 @@ package drs
 
 import (
 	"io"
-	"log"
 	"sync/atomic"
 	"time"
 
 	"github.com/ironbay/drs/drs-go/protocol"
 	"github.com/ironbay/dynamic"
+	"github.com/ironbay/go-util/console"
 	"github.com/satori/go.uuid"
 	"github.com/streamrail/concurrent-map"
 )
@@ -108,7 +108,7 @@ func (this *Connection) respond(key string, resp interface{}, err error) {
 				"message", err.Error(),
 			)
 		} else {
-			log.Println(err)
+			console.JSON("EXCEPTION", err)
 			cmd.Action = EXCEPTION
 			cmd.Body = dynamic.Build(
 				"message", err.Error(),

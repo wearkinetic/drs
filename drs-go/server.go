@@ -34,11 +34,12 @@ func New(transport Transport, protocol protocol.Protocol) *Server {
 		for key, _ := range result.Processor.handlers {
 			functions = append(functions, key)
 		}
+
 		response(w, 200, map[string]interface{}{
 			"connections": map[string]interface{}{
 				"inbound": result.inbound.Count(),
 			},
-			"commands":  result.stats,
+			"commands":  result.stats.Items(),
 			"functions": functions,
 		})
 	})
