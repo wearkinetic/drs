@@ -101,7 +101,7 @@ func (this *Processor) Invoke(conn *Connection, cmd *Command) (result interface{
 	for _, cb := range handlers {
 		result, err = cb(message)
 		if err != nil {
-			return nil, err
+			panic(err)
 		}
 	}
 	return result, nil
