@@ -4,7 +4,6 @@ import (
 	"io"
 	"log"
 	"sync/atomic"
-	"time"
 
 	"github.com/ironbay/drs/drs-go/protocol"
 	"github.com/ironbay/dynamic"
@@ -66,12 +65,10 @@ func (this *Connection) Call(cmd *Command) (interface{}, error) {
 		result := <-block
 		switch result.Action {
 		case EXCEPTION:
-			atomic.AddInt64(&stats.Exceptions, 1)
-			time.Sleep(1 * time.Second)
-			continue
+			message := dynamic.String(result.Map(), "message")
+			return nil, Exception(message)
 		case ERROR:
 			message := dynamic.String(result.Map(), "message")
-			atomic.AddInt64(&stats.Errors, 1)
 			return nil, Error(message)
 		case RESPONSE:
 			atomic.AddInt64(&stats.Success, 1)
