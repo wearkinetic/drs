@@ -41,7 +41,7 @@ export default class Connection {
 			this._pending[cmd.key] = resolve
 			await this.fire(cmd)
 		})
-		const wrapped = { ...result, key: cmd.key } 
+		const wrapped = { ...result, key: cmd.key }
 		if (result.action === 'drs.error')
 			throw new Error(wrapped)
 		if (result.action === 'drs.exception')
@@ -113,7 +113,7 @@ export default class Connection {
 		this._closed = true
 		clearInterval(this._interval)
 		Object.keys(this._pending).map(key => {
-			this._pending[key].resolve({
+			this._pending[key]({
 				key,
 				action: 'drs.exception',
 				body: {
