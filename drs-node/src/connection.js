@@ -80,7 +80,7 @@ export default class Connection {
 				})
 			})
 			.catch(async ex => {
-				console.log(ex)
+				console.log('DRS', ex)
 				await timeout(1000)
 				await this.dial(transport, host)
 			})
