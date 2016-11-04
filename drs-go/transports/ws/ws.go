@@ -17,9 +17,11 @@ func (this *Transport) On(action string) error {
 }
 
 func (this *Transport) Listen(host string, ch func(raw io.ReadWriteCloser)) error {
-	ws := websocket.Handler(func(w *websocket.Conn) {
-		ch(w)
-	})
+	ws := websocket.Server{
+		Handler: websocket.Handler(func(w *websocket.Conn) {
+			ch(w)
+		}),
+	}
 	http.HandleFunc("/socket", ws.ServeHTTP)
 	return http.ListenAndServe(host, nil)
 }
