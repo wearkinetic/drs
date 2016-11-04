@@ -3,7 +3,7 @@ package drs
 import (
 	"io"
 	"sync/atomic"
-
+	"log"
 	"github.com/ironbay/drs/drs-go/protocol"
 	"github.com/ironbay/dynamic"
 	"github.com/ironbay/go-util/console"
@@ -38,8 +38,10 @@ func (this *Connection) Read() error {
 	var err error
 	for {
 		cmd := new(Command)
-		if err = this.Stream.Decode(cmd); err != nil {
+		if err = this.Stream.Decode(cmd); err == io.EOF {
 			break
+		} else if err != nil {
+			log.Fatal(err)
 		}
 		go this.Process(this, cmd)
 	}
