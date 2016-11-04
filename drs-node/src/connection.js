@@ -49,8 +49,8 @@ export default class Connection {
 		return wrapped
 	}
 
-	async fire(cmd, delay) {
-		const d = delay || (Math.random() * 2000)
+	async fire(cmd) {
+		const d = Math.ceil(500, Math.random() * 2000)
 		if (!cmd.key)
 			cmd.key = UUID.ascending()
 		while (!this._closed) {
@@ -60,7 +60,7 @@ export default class Connection {
 			} catch (ex) {
 				//
 			}
-			await timeout(d * 2)
+			await timeout(d)
 		}
 	}
 
