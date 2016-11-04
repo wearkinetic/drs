@@ -1,6 +1,6 @@
 {
   "name": "drs-node",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Client for Delta",
   "main": "lib/index.js",
   "scripts": {
@@ -26,6 +26,6 @@
     "eslint-plugin-babel": "^3.0.0"
   },
   "dependencies": {
-    "uws": "^0.11.0"
+    "ws": "^1.1.1"
   }
 }

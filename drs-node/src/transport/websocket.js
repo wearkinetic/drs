@@ -1,4 +1,4 @@
-import WS from 'uws'
+import WS from 'ws'
 import qs from 'querystring'
 import EventEmitter from 'events'
 
