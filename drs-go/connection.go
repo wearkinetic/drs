@@ -2,8 +2,9 @@ package drs
 
 import (
 	"io"
-	"sync/atomic"
 	"log"
+	"sync/atomic"
+
 	"github.com/ironbay/drs/drs-go/protocol"
 	"github.com/ironbay/dynamic"
 	"github.com/ironbay/go-util/console"
@@ -41,7 +42,8 @@ func (this *Connection) Read() error {
 		if err = this.Stream.Decode(cmd); err == io.EOF {
 			break
 		} else if err != nil {
-			log.Fatal(err)
+			log.Println("warn", err)
+			break
 		}
 		go this.Process(this, cmd)
 	}
