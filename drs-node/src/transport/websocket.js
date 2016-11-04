@@ -1,4 +1,4 @@
-import WS from 'ws'
+import WS from 'uws'
 import qs from 'querystring'
 import EventEmitter from 'events'
 
@@ -21,7 +21,7 @@ class Raw extends EventEmitter {
 	constructor(ws) {
 		super()
 		this._ws = ws
-
+		this._ws.on('error', e => this.emit('error', e))
 		this._ws.on('message', async data => this.emit('data', data))
 		this._ws.on('close', () => this.emit('close'))
 	}
