@@ -49,7 +49,8 @@ export default class Connection {
 		return wrapped
 	}
 
-	async fire(cmd) {
+	async fire(cmd, delay) {
+		const d = delay || (Math.random() * 2000)
 		if (!cmd.key)
 			cmd.key = UUID.ascending()
 		while (!this._closed) {
@@ -59,7 +60,7 @@ export default class Connection {
 			} catch (ex) {
 				//
 			}
-			await timeout(1000)
+			await timeout(d * 2)
 		}
 	}
 
@@ -68,20 +69,21 @@ export default class Connection {
 		return new Connection(raw, protocol)
 	}
 
-	dial(transport, host) {
+	dial(transport, host, delay) {
+		const d = delay || (Math.random() * 2000)
 		if (this._closed)
 			return
 		return transport.dial(host)
 			.then(async raw => {
 				this._raw = raw
 				this.read().then(async () => {
-					await timeout(1000)
+					await timeout(d * 2)
 					await this.dial(transport, host)
 				})
 			})
 			.catch(async ex => {
 				console.log('DRS', ex)
-				await timeout(1000)
+				await timeout(d * 2)
 				await this.dial(transport, host)
 			})
 	}
@@ -117,7 +119,7 @@ export default class Connection {
 				key,
 				action: 'drs.exception',
 				body: {
-					message: 'Closing connection'
+					message: 'CLOSED'
 				}
 			})
 			delete this._pending[key]
