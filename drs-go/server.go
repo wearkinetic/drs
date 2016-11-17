@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/ironbay/delta/uuid"
 	"github.com/ironbay/drs/drs-go/protocol"
@@ -34,8 +35,9 @@ func New(transport Transport, protocol protocol.Protocol) *Server {
 		for key, _ := range result.Processor.handlers {
 			functions = append(functions, key)
 		}
-
+		host, _ := os.Hostname()
 		response(w, 200, map[string]interface{}{
+			"hostname": host,
 			"connections": map[string]interface{}{
 				"inbound": result.inbound.Count(),
 			},
