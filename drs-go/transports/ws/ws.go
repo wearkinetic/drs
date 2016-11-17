@@ -18,13 +18,11 @@ func (this *Transport) On(action string) error {
 
 func (this *Transport) Listen(host string, ch func(raw io.ReadWriteCloser)) error {
 	ws := websocket.Server{
-		Handler: websocket.Handler(func(ws *websocket.Conn) {
-			ch(ws)
+		Handler: websocket.Handler(func(w *websocket.Conn) {
+			ch(w)
 		}),
 	}
-	http.HandleFunc("/socket", func(w http.ResponseWriter, req *http.Request) {
-		ws.ServeHTTP(w, req)
-	})
+	http.HandleFunc("/socket", ws.ServeHTTP)
 	return http.ListenAndServe(host, nil)
 }
 

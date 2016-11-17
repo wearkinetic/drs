@@ -41,7 +41,7 @@ export default class Connection {
 			this._pending[cmd.key] = resolve
 			await this.fire(cmd)
 		})
-		const wrapped = { ...result, key: cmd.key } 
+		const wrapped = { ...result, key: cmd.key }
 		if (result.action === 'drs.error')
 			throw new Error(wrapped)
 		if (result.action === 'drs.exception')
@@ -50,6 +50,7 @@ export default class Connection {
 	}
 
 	async fire(cmd) {
+		const d = Math.ceil(500, Math.random() * 2000)
 		if (!cmd.key)
 			cmd.key = UUID.ascending()
 		while (!this._closed) {
@@ -59,7 +60,7 @@ export default class Connection {
 			} catch (ex) {
 				//
 			}
-			await timeout(1000)
+			await timeout(d)
 		}
 	}
 
@@ -68,20 +69,21 @@ export default class Connection {
 		return new Connection(raw, protocol)
 	}
 
-	dial(transport, host) {
+	dial(transport, host, delay) {
+		const d = delay || (Math.random() * 2000)
 		if (this._closed)
 			return
 		return transport.dial(host)
 			.then(async raw => {
 				this._raw = raw
 				this.read().then(async () => {
-					await timeout(1000)
+					await timeout(d * 2)
 					await this.dial(transport, host)
 				})
 			})
 			.catch(async ex => {
-				console.log(ex)
-				await timeout(1000)
+				console.log('DRS', ex)
+				await timeout(d * 2)
 				await this.dial(transport, host)
 			})
 	}
@@ -113,11 +115,11 @@ export default class Connection {
 		this._closed = true
 		clearInterval(this._interval)
 		Object.keys(this._pending).map(key => {
-			this._pending[key].resolve({
+			this._pending[key]({
 				key,
 				action: 'drs.exception',
 				body: {
-					message: 'Closing connection'
+					message: 'CLOSED'
 				}
 			})
 			delete this._pending[key]

@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/ironbay/delta/uuid"
 	"github.com/ironbay/drs/drs-go/protocol"
+	"github.com/janajri/betterguid"
 	"github.com/streamrail/concurrent-map"
 )
 
@@ -60,12 +60,13 @@ func (this *Server) Listen(host string) error {
 				return
 			}
 		}
-		key := uuid.Ascending()
+		key := betterguid.Ascending()
 		defer func() {
 			this.inbound.Remove(key)
 			for _, cb := range this.disconnect {
 				cb(conn)
 			}
+			conn.Close()
 		}()
 		this.inbound.Set(key, conn)
 		conn.Read()

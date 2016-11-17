@@ -7,7 +7,7 @@ import (
 	"github.com/ironbay/drs/drs-go/protocol"
 	"github.com/ironbay/dynamic"
 	"github.com/ironbay/go-util/console"
-	"github.com/satori/go.uuid"
+	"github.com/janajri/betterguid"
 	"github.com/streamrail/concurrent-map"
 )
 
@@ -38,7 +38,10 @@ func (this *Connection) Read() error {
 	var err error
 	for {
 		cmd := new(Command)
-		if err = this.Stream.Decode(cmd); err != nil {
+		if err = this.Stream.Decode(cmd); err == io.EOF {
+			break
+		} else if err != nil {
+			// weird
 			break
 		}
 		go this.Process(this, cmd)
@@ -48,7 +51,7 @@ func (this *Connection) Read() error {
 
 func (this *Connection) Call(cmd *Command) (interface{}, error) {
 	if cmd.Key == "" {
-		cmd.Key = uuid.NewV4().String()
+		cmd.Key = betterguid.Ascending()
 	}
 	match, ok := this.stats.Get(cmd.Action)
 	if !ok {
