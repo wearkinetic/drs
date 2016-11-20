@@ -44,7 +44,7 @@ func (this *Connection) Read() error {
 			// weird
 			break
 		}
-		this.Process(this, cmd)
+		go this.Process(this, cmd)
 	}
 	return err
 }
