@@ -18,7 +18,7 @@ type Server struct {
 	Transport  Transport
 	connect    []func(*Connection) error
 	disconnect []func(*Connection)
-	inbound    cmap.ConcurrentMap
+	Inbound    cmap.ConcurrentMap
 }
 
 func New(transport Transport, protocol protocol.Protocol) *Server {
@@ -28,7 +28,7 @@ func New(transport Transport, protocol protocol.Protocol) *Server {
 		Transport:  transport,
 		connect:    []func(*Connection) error{},
 		disconnect: []func(*Connection){},
-		inbound:    cmap.New(),
+		Inbound:    cmap.New(),
 	}
 	http.HandleFunc("/stats", func(w http.ResponseWriter, req *http.Request) {
 		functions := []string{}
@@ -39,7 +39,7 @@ func New(transport Transport, protocol protocol.Protocol) *Server {
 		response(w, 200, map[string]interface{}{
 			"hostname": host,
 			"connections": map[string]interface{}{
-				"inbound": result.inbound.Count(),
+				"inbound": result.Inbound.Count(),
 			},
 			"commands":  result.stats.Items(),
 			"functions": functions,
@@ -62,13 +62,13 @@ func (this *Server) Listen(host string) error {
 		}
 		key := betterguid.Ascending()
 		defer func() {
-			this.inbound.Remove(key)
+			this.Inbound.Remove(key)
 			for _, cb := range this.disconnect {
 				cb(conn)
 			}
 			conn.Close()
 		}()
-		this.inbound.Set(key, conn)
+		this.Inbound.Set(key, conn)
 		conn.Read()
 	})
 }
