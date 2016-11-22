@@ -84,9 +84,11 @@ func (this *Processor) Invoke(conn *Connection, cmd *Command) (result interface{
 	}()
 	defer func() {
 		if r := recover(); r != nil {
-			log.Println(r)
-			console.JSON(cmd)
-			log.Println(string(debug.Stack()))
+			if _, ok := r.(*DRSError); !ok {
+				log.Println(r)
+				console.JSON(cmd)
+				log.Println(string(debug.Stack()))
+			}
 			var ok bool
 			if err, ok = r.(error); !ok {
 				err = Exception(fmt.Sprint(r))
