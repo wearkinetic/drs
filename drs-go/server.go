@@ -86,7 +86,7 @@ func (this *Server) Close() {
 }
 
 func (this *Server) Broadcast(msg *Command) {
-	for kv := range this.inbound.Iter() {
+	for kv := range this.Inbound.Iter() {
 		kv.Val.(*Connection).Fire(msg)
 	}
 }
