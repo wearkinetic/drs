@@ -40,11 +40,7 @@ func (this *Connection) Read() error {
 		cmd := new(Command)
 		if err = this.Stream.Decode(cmd); err != nil {
 			break
-<<<<<<< HEAD
 		}
-=======
-		} 
->>>>>>> d8104cc45536e32920dc40dd1526d99d85947448
 		go this.Process(this, cmd)
 	}
 	return err
