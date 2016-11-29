@@ -72,7 +72,6 @@ func (this *Server) Listen(host string) error {
 		}()
 		this.Inbound.Set(key, conn)
 		conn.Read()
-		log.Println()
 	})
 }
 
