@@ -38,10 +38,7 @@ func (this *Connection) Read() error {
 	var err error
 	for {
 		cmd := new(Command)
-		if err = this.Stream.Decode(cmd); err == io.EOF {
-			break
-		} else if err != nil {
-			// weird
+		if err = this.Stream.Decode(cmd); err != nil {
 			break
 		}
 		go this.Process(this, cmd)

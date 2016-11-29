@@ -62,14 +62,17 @@ func (this *Server) Listen(host string) error {
 		}
 		key := betterguid.Ascending()
 		defer func() {
-			this.Inbound.Remove(key)
+			log.Println(key, "Successfully removed from inbound")
+			log.Println(key, "Running Disconnect callbacks")
 			for _, cb := range this.disconnect {
 				cb(conn)
 			}
+			log.Println(key, "Finished running disconnect callbacks")
 			conn.Close()
 		}()
 		this.Inbound.Set(key, conn)
 		conn.Read()
+		log.Println()
 	})
 }
 
