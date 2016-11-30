@@ -75,6 +75,9 @@ export default class Connection {
 			return
 		return transport.dial(host)
 			.then(async raw => {
+				if (this._raw) {
+					this._raw.close()
+				}
 				this._raw = raw
 				this.read().then(async () => {
 					await timeout(d * 2)
