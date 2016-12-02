@@ -64,30 +64,22 @@ export default class Connection {
 		}
 	}
 
-	static async dial(transport, protocol, host) {
-		const raw = await transport.dial(host)
-		return new Connection(raw, protocol)
-	}
-
 	dial(transport, host, delay) {
 		const d = delay || (Math.random() * 2000)
 		if (this._closed)
 			return
 		return transport.dial(host)
 			.then(async raw => {
-				if (this._raw) {
-					this._raw.close()
-				}
 				this._raw = raw
 				this.read().then(async () => {
 					await timeout(d * 2)
-					await this.dial(transport, host)
+					this.dial(transport, host)
 				})
 			})
 			.catch(async ex => {
 				console.log('DRS', ex)
 				await timeout(d * 2)
-				await this.dial(transport, host)
+				this.dial(transport, host)
 			})
 	}
 
