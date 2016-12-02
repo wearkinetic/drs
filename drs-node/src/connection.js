@@ -71,10 +71,9 @@ export default class Connection {
 		return transport.dial(host)
 			.then(async raw => {
 				this._raw = raw
-				this.read().then(async () => {
-					await timeout(d * 2)
-					this.dial(transport, host)
-				})
+				await this.read()
+				await timeout(d * 2)
+				this.dial(transport, host)
 			})
 			.catch(async ex => {
 				console.log('DRS', ex)
