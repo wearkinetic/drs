@@ -3,7 +3,7 @@ package tcp
 import (
 	"testing"
 
-	"github.com/ironbay/drs/drs-go"
+	"github.com/wearkinetic/drs/drs-go"
 )
 
 func TestTransport(t *testing.T) {
