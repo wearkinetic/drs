@@ -3,7 +3,7 @@ package ping
 import (
 	"time"
 
-	"github.com/ironbay/drs/drs-go"
+	"github.com/wearkinetic/drs/drs-go"
 )
 
 func Attach(processor *drs.Processor) {

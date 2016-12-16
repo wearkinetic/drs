@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/ironbay/drs/drs-go/protocol"
+	"github.com/wearkinetic/drs/drs-go/protocol"
 	"github.com/janajri/betterguid"
 	"github.com/streamrail/concurrent-map"
 )

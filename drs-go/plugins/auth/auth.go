@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"github.com/ironbay/drs/drs-go"
+	"github.com/wearkinetic/drs/drs-go"
 	"golang.org/x/net/websocket"
 )
 

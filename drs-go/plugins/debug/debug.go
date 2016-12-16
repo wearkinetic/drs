@@ -1,7 +1,7 @@
 package debug
 
 import (
-	"github.com/ironbay/drs/drs-go"
+	"github.com/wearkinetic/drs/drs-go"
 )
 
 const KABOOM = rune(0x1F4A5)

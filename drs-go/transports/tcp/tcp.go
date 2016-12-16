@@ -4,7 +4,7 @@ import (
 	"io"
 	"net"
 
-	"github.com/ironbay/drs/drs-go"
+	"github.com/wearkinetic/drs/drs-go"
 )
 
 type Transport struct {

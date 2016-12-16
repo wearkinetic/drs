@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ironbay/drs/drs-go"
-	"github.com/ironbay/drs/drs-go/protocol"
+	"github.com/wearkinetic/drs/drs-go"
+	"github.com/wearkinetic/drs/drs-go/protocol"
 	"github.com/ironbay/dynamic"
 )
 

@@ -4,7 +4,7 @@ import (
 	"io"
 	"sync/atomic"
 
-	"github.com/ironbay/drs/drs-go/protocol"
+	"github.com/wearkinetic/drs/drs-go/protocol"
 	"github.com/ironbay/dynamic"
 	"github.com/ironbay/go-util/console"
 	"github.com/janajri/betterguid"
