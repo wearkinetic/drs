@@ -5,9 +5,9 @@ import (
 	"log"
 	"runtime/debug"
 
-	"github.com/ironbay/dynamic"
 	"github.com/ironbay/go-util/console"
 	"github.com/streamrail/concurrent-map"
+	"github.com/wearkinetic/dynamic"
 )
 
 type Message struct {

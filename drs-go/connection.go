@@ -4,11 +4,11 @@ import (
 	"io"
 	"sync/atomic"
 
-	"github.com/wearkinetic/drs/drs-go/protocol"
-	"github.com/ironbay/dynamic"
 	"github.com/ironbay/go-util/console"
 	"github.com/janajri/betterguid"
 	"github.com/streamrail/concurrent-map"
+	"github.com/wearkinetic/drs/drs-go/protocol"
+	"github.com/wearkinetic/dynamic"
 )
 
 type Connection struct {

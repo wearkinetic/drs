@@ -7,7 +7,7 @@ import (
 
 	"github.com/wearkinetic/drs/drs-go/protocol"
 	"github.com/wearkinetic/drs/drs-go/transports/ws"
-	"github.com/ironbay/dynamic"
+	"github.com/wearkinetic/dynamic"
 )
 
 func TestConnection(t *testing.T) {
